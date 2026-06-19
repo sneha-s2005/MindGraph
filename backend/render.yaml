@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: mindgraph-api
+    env: node
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: NEO4J_URI
+        sync: false
+      - key: NEO4J_USERNAME
+        sync: false
+      - key: NEO4J_PASSWORD
+        sync: false
+      - key: NEO4J_DATABASE
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: PORT
+        value: 3000
+    healthCheckPath: /health
