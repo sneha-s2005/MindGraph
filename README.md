@@ -314,7 +314,7 @@ MindGraph/
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/MindGraph.git
+git clone https://github.com/sneha-s2005/MindGraph.git
 cd MindGraph
 ```
 
@@ -542,7 +542,7 @@ In the **Profile** tab → **Settings**:
 Contributions are welcome! Here's how to get started:
 
 1. **Fork** the repository.
-2. **Clone** your fork: `git clone https://github.com/your-username/MindGraph.git`
+2. **Clone** your fork: `git clone https://github.com/sneha-s2005/MindGraph.git`
 3. **Create a branch**: `git checkout -b feature/your-feature-name`
 4. **Make your changes** in the appropriate `src/` or `backend/` directories.
 5. **Test** your changes: run the frontend with `npm start` and the backend with `npm run dev`.
@@ -591,6 +591,10 @@ See the [LICENSE](./LICENSE) file for full details.
 
 *"Track your mind. Understand yourself."*
 
-[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=flat-square&logo=github)](https://github.com/your-username/MindGraph)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=flat-square&logo=github)](https://github.com/sneha-s2005/MindGraph)
+
+Made with ❤️ by **[Sneha S](https://github.com/sneha-s2005)**
+
+⭐ Star this repo if you found it helpful!
 
 </div>

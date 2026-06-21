@@ -1,16 +1,29 @@
-import React, { useState, useCallback } from 'react';
-import { StyleSheet, View, Text, ScrollView, Dimensions, Platform, Animated } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { StyleSheet, View, Text, ScrollView, Dimensions, Platform, Animated, Pressable } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { BarChart, LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing } from '../constants/theme';
-import { getEntries } from '../utils/storage';
-import { getInsights, getAiInsight } from '../services/api';
+import { getEntries, saveEntry } from '../utils/storage';
+import { getInsights, getAiInsight, logMood } from '../services/api';
 import HabitCard from '../components/HabitCard';
 import InsightCard from '../components/InsightCard';
 
 export default function InsightsScreen() {
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    let active = true;
+    const defer = async () => {
+      await Promise.resolve();
+      if (active) {
+        setIsMounted(true);
+      }
+    };
+    defer();
+    return () => { active = false; };
+  }, []);
+
   const [weeklyData, setWeeklyData] = useState<{ date: string; moodScore: number; productivityScore: number }[]>([]);
   const [topHabits, setTopHabits] = useState<{ name: string; correlationPct: number }[]>([]);
   const [negativeHabits, setNegativeHabits] = useState<{ name: string; frequency: number }[]>([]);
@@ -28,6 +41,10 @@ export default function InsightsScreen() {
   const [influentialHabit, setInfluentialHabit] = useState<{ name: string; impactPct: number; trend: string; reasoning: string } | null>(null);
   const [influentialActivity, setInfluentialActivity] = useState<{ name: string; impactScore: number; strength: string; isPositive: boolean } | null>(null);
   const [isPresentationMode, setIsPresentationMode] = useState(false);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
+  const [toast, setToast] = useState('');
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<any | null>(null);
   const pathAnim = React.useRef(new Animated.Value(0)).current;
 
   useFocusEffect(
@@ -209,8 +226,232 @@ export default function InsightsScreen() {
 
       load();
       return () => { mounted = false; };
-    }, [])
+    }, [reloadTrigger])
   );
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 2500);
+  };
+
+  const getPastDateString = (offset: number): string => {
+    const d = new Date();
+    d.setDate(d.getDate() - offset);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatTooltipDate = (dateStr: string) => {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return `${months[parseInt(parts[1]) - 1]} ${parseInt(parts[2])}, ${parts[0]}`;
+    }
+    return dateStr;
+  };
+
+  const handlePrepopulate = async () => {
+    setDataLoading(true);
+    try {
+      const storedId = await AsyncStorage.getItem('@mindgraph_userId');
+      const storedName = await AsyncStorage.getItem('@mindgraph_userName');
+      const userId = storedId || '';
+      const userName = storedName || 'Friend';
+
+      const mockEntries = [
+        {
+          date: getPastDateString(9),
+          mood: 6,
+          energy: 'Medium' as const,
+          sleepHours: 7.6,
+          exerciseDuration: 0,
+          studyHours: 1.0,
+          workHours: 4.5,
+          socialInteraction: 'Co-workers',
+          stressLevel: 'Medium' as const,
+          goalTitle: 'Setup Project',
+          activityName: 'Coding',
+          habits: { sleep: true, exercise: false, meditation: false, deepWork: true },
+          notes: 'Started the project. Good initial progress.',
+        },
+        {
+          date: getPastDateString(8),
+          mood: 5,
+          energy: 'Low' as const,
+          sleepHours: 5.8,
+          exerciseDuration: 0,
+          studyHours: 0.5,
+          workHours: 6.0,
+          socialInteraction: 'Roommate',
+          stressLevel: 'High' as const,
+          goalTitle: 'API connection',
+          activityName: 'Research',
+          habits: { sleep: false, exercise: false, meditation: false, deepWork: false },
+          notes: 'Struggling with database setup. Felt pretty tired today.',
+        },
+        {
+          date: getPastDateString(7),
+          mood: 7,
+          energy: 'Medium' as const,
+          sleepHours: 7.5,
+          exerciseDuration: 20,
+          studyHours: 1.5,
+          workHours: 5.0,
+          socialInteraction: 'Mentor Mark',
+          stressLevel: 'Medium' as const,
+          goalTitle: 'Database Schema',
+          activityName: 'Walking',
+          habits: { sleep: true, exercise: true, meditation: false, deepWork: true },
+          notes: 'Good session with Mentor Mark. Helped clarify the schema design.',
+        },
+        {
+          date: getPastDateString(6),
+          mood: 6,
+          energy: 'Medium' as const,
+          sleepHours: 7.8,
+          exerciseDuration: 0,
+          studyHours: 2.0,
+          workHours: 5.5,
+          socialInteraction: 'Design Team',
+          stressLevel: 'Medium' as const,
+          goalTitle: 'UI Prototypes',
+          activityName: 'Reading',
+          habits: { sleep: true, exercise: false, meditation: true, deepWork: true },
+          notes: 'Refining the visual styles. Decent focus blocks.',
+        },
+        {
+          date: getPastDateString(5),
+          mood: 8,
+          energy: 'High' as const,
+          sleepHours: 8.0,
+          exerciseDuration: 30,
+          studyHours: 2.0,
+          workHours: 4.0,
+          socialInteraction: 'Family',
+          stressLevel: 'Low' as const,
+          goalTitle: 'Component library',
+          activityName: 'Gym Workout',
+          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
+          notes: 'Gym workout really boosted my energy today. Slept great!',
+        },
+        {
+          date: getPastDateString(4),
+          mood: 9,
+          energy: 'High' as const,
+          sleepHours: 8.2,
+          exerciseDuration: 45,
+          studyHours: 1.0,
+          workHours: 5.0,
+          socialInteraction: 'Friends',
+          stressLevel: 'Low' as const,
+          goalTitle: 'State management',
+          activityName: 'Cycling',
+          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
+          notes: 'Went cycling. Clear head, great flow state in code.',
+        },
+        {
+          date: getPastDateString(3),
+          mood: 7,
+          energy: 'Medium' as const,
+          sleepHours: 7.5,
+          exerciseDuration: 0,
+          studyHours: 3.0,
+          workHours: 6.0,
+          socialInteraction: 'Study Group',
+          stressLevel: 'Medium' as const,
+          goalTitle: 'Backend integration',
+          activityName: 'Reading',
+          habits: { sleep: true, exercise: false, meditation: false, deepWork: true },
+          notes: 'Worked in a group study session. Productive but a bit noisy.',
+        },
+        {
+          date: getPastDateString(2),
+          mood: 8,
+          energy: 'High' as const,
+          sleepHours: 7.8,
+          exerciseDuration: 30,
+          studyHours: 1.5,
+          workHours: 5.0,
+          socialInteraction: 'Mentor Mark',
+          stressLevel: 'Low' as const,
+          goalTitle: 'Interactive Graph',
+          activityName: 'Gym Workout',
+          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
+          notes: 'Implemented node drag force-directed simulation. Very satisfying!',
+        },
+        {
+          date: getPastDateString(1),
+          mood: 7,
+          energy: 'Medium' as const,
+          sleepHours: 7.0,
+          exerciseDuration: 20,
+          studyHours: 2.0,
+          workHours: 5.5,
+          socialInteraction: 'Co-workers',
+          stressLevel: 'Medium' as const,
+          goalTitle: 'Insights screen',
+          activityName: 'Walking',
+          habits: { sleep: true, exercise: true, meditation: false, deepWork: true },
+          notes: 'Walking during lunch helped clear developer fatigue.',
+        },
+        {
+          date: getPastDateString(0),
+          mood: 8,
+          energy: 'High' as const,
+          sleepHours: 8.0,
+          exerciseDuration: 30,
+          studyHours: 1.0,
+          workHours: 4.5,
+          socialInteraction: 'Mentor Mark',
+          stressLevel: 'Low' as const,
+          goalTitle: 'Polish UI Details',
+          activityName: 'Yoga',
+          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
+          notes: 'Pre-populated data is now working. Yoga in the morning made me feel very balanced.',
+        },
+      ];
+
+      // Save entries locally
+      for (const entry of mockEntries) {
+        await saveEntry(entry);
+      }
+
+      // If user is registered on Neo4j, attempt backend sync asynchronously
+      if (userId && !userId.startsWith('local_')) {
+        for (const entry of mockEntries) {
+          try {
+            await logMood({
+              userId,
+              userName,
+              score: entry.mood,
+              energyLevel: entry.energy,
+              sleepHours: entry.sleepHours,
+              exerciseDuration: entry.exerciseDuration,
+              studyHours: entry.studyHours,
+              workHours: entry.workHours,
+              socialInteraction: entry.socialInteraction,
+              stressLevel: entry.stressLevel,
+              goalTitle: entry.goalTitle,
+              activityName: entry.activityName,
+              notes: entry.notes,
+              habits: entry.habits,
+            });
+          } catch (syncErr) {
+            console.warn('Asynchronous sync failed for item:', entry.date, syncErr);
+          }
+        }
+      }
+
+      showToast('✅ Seeded 10 rich mock entries!');
+      setReloadTrigger((prev) => prev + 1);
+    } catch (err) {
+      console.error(err);
+      showToast('❌ Seeding failed.');
+      setDataLoading(false);
+    }
+  };
 
   function calculateLocalProductivitySingle(entry: any) {
     const totalFocusHours = parseFloat(String(entry.workHours || 0)) + parseFloat(String(entry.studyHours || 0));
@@ -332,9 +573,10 @@ export default function InsightsScreen() {
     return `📈 PATTERN: Your average mood this week is ${avg.toFixed(1)}/10, showing steady progress. CORRELATION: ${topHabit} correlates most with your better days. RECOMMENDATION: Try scheduling ${topHabit.toLowerCase()} as a non-negotiable tomorrow morning.`;
   }
 
+  const windowWidth = Dimensions.get('window').width;
   const chartWidth = Platform.OS === 'web'
-    ? Math.min(530, Dimensions.get('window').width - 48)
-    : Dimensions.get('window').width - 48;
+    ? Math.min(530, Math.max(320, windowWidth - 48))
+    : Math.max(320, windowWidth - 48);
 
   const labels = weeklyData.map((d) => {
     const parts = d.date.split('-');
@@ -357,6 +599,12 @@ export default function InsightsScreen() {
       <Text style={styles.headerTitle}>Analytics & Insights</Text>
       <Text style={styles.headerSub}>Behavioral Intelligence OS · Full weekly analysis</Text>
 
+      {toast ? (
+        <View style={[styles.toast, { backgroundColor: toast.startsWith('✅') ? Colors.success : Colors.danger }]}>
+          <Text style={styles.toastText}>{toast}</Text>
+        </View>
+      ) : null}
+
       {weeklyData.length < 3 ? (
         <View style={styles.emptyContainer}>
           <View style={styles.emptyGraphic}>
@@ -366,6 +614,13 @@ export default function InsightsScreen() {
           <Text style={styles.emptyTextPremium}>
             Need at least 3 days of history to generate insights. Log at least 3 days of activity to unlock relationship intelligence.
           </Text>
+          <Pressable
+            style={({ pressed }) => [styles.emptyLogBtn, pressed && { opacity: 0.85 }, { marginTop: 20 }]}
+            onPress={handlePrepopulate}
+          >
+            <Ionicons name="construct-outline" size={16} color="#1a1a2e" style={{ marginRight: 6 }} />
+            <Text style={styles.emptyLogBtnText}>Pre-populate Sample Logs</Text>
+          </Pressable>
         </View>
       ) : (
         <>
@@ -391,7 +646,7 @@ export default function InsightsScreen() {
       {/* 7-day Mood Bar Chart */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>7-Day Mood Trend</Text>
-        {chartMoodValues.length > 0 ? (
+        {isMounted && chartMoodValues.length > 0 ? (
           <View style={styles.chartWrap}>
             <BarChart
               data={{ labels, datasets: [{ data: chartMoodValues }] }}
@@ -425,7 +680,7 @@ export default function InsightsScreen() {
       {/* 7-day Productivity Line Chart */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>7-Day Productivity Trend</Text>
-        {chartProdValues.length > 0 ? (
+        {isMounted && chartProdValues.length > 0 ? (
           <View style={styles.chartWrap}>
             <LineChart
               data={{ labels, datasets: [{ data: chartProdValues }] }}
@@ -434,6 +689,15 @@ export default function InsightsScreen() {
               yAxisLabel=""
               yAxisSuffix="%"
               fromZero
+              onDataPointClick={async ({ index }) => {
+                const day = weeklyData[index];
+                if (day) {
+                  setSelectedDate(day.date);
+                  const localEntries = await getEntries();
+                  const match = localEntries.find(e => e.date === day.date);
+                  setSelectedEntry(match || null);
+                }
+              }}
               chartConfig={{
                 backgroundColor: '#1f1a3a',
                 backgroundGradientFrom: '#1f1a3a',
@@ -446,6 +710,38 @@ export default function InsightsScreen() {
               }}
               style={{ borderRadius: 14 }}
             />
+            {selectedEntry && (
+              <View style={styles.tooltipCard}>
+                <View style={styles.tooltipHeader}>
+                  <Text style={styles.tooltipDate}>{formatTooltipDate(selectedDate || '')}</Text>
+                  <Pressable onPress={() => setSelectedEntry(null)}>
+                    <Ionicons name="close" size={16} color={Colors.textSecondary} />
+                  </Pressable>
+                </View>
+                <View style={styles.tooltipMetrics}>
+                  <View style={styles.tooltipMetricItem}>
+                    <Ionicons name="happy-outline" size={14} color={Colors.secondary} />
+                    <Text style={styles.tooltipMetricVal}>Mood: {selectedEntry.mood}/10</Text>
+                  </View>
+                  <View style={styles.tooltipMetricItem}>
+                    <Ionicons name="trending-up-outline" size={14} color="#84cc16" />
+                    <Text style={styles.tooltipMetricVal}>Productivity: {calculateLocalProductivitySingle(selectedEntry)}%</Text>
+                  </View>
+                </View>
+                <View style={styles.tooltipDetailsGrid}>
+                  <Text style={styles.tooltipDetailText}>💤 Sleep: {selectedEntry.sleepHours || 0} hrs</Text>
+                  <Text style={styles.tooltipDetailText}>🏃 Exercise: {selectedEntry.exerciseDuration || 0} mins</Text>
+                  <Text style={styles.tooltipDetailText}>⚡ Energy: {selectedEntry.energy}</Text>
+                  <Text style={styles.tooltipDetailText}>🧘 Stress: {selectedEntry.stressLevel}</Text>
+                </View>
+                {selectedEntry.goalTitle ? (
+                  <Text style={styles.tooltipSubText}>🎯 Goal: {selectedEntry.goalTitle}</Text>
+                ) : null}
+                {selectedEntry.notes ? (
+                  <Text style={styles.tooltipNotes}>&quot;{selectedEntry.notes}&quot;</Text>
+                ) : null}
+              </View>
+            )}
           </View>
         ) : (
           <View style={styles.emptyChart}>
@@ -598,7 +894,7 @@ export default function InsightsScreen() {
               <Text style={styles.pathStepText}>Positive Mood</Text>
             </Animated.View>
 
-            <Animated.View style={[styles.pathArrowBox, { opacity: pathAnim.interpolate({ inputRange: [0, 0.6, 0.9], outputRange: [0, 0, 0, 1] }) }]}>
+            <Animated.View style={[styles.pathArrowBox, { opacity: pathAnim.interpolate({ inputRange: [0, 0.6, 0.9], outputRange: [0, 0, 1] }) }]}>
               <Ionicons name="arrow-forward" size={14} color="#6b7280" />
             </Animated.View>
 
@@ -631,7 +927,7 @@ export default function InsightsScreen() {
               <Text style={[styles.pathStepText, { color: Colors.danger }]}>Poor Sleep</Text>
             </Animated.View>
 
-            <Animated.View style={[styles.pathArrowBox, { opacity: pathAnim.interpolate({ inputRange: [0, 0.6, 0.9], outputRange: [0, 0, 0, 1] }) }]}>
+            <Animated.View style={[styles.pathArrowBox, { opacity: pathAnim.interpolate({ inputRange: [0, 0.6, 0.9], outputRange: [0, 0, 1] }) }]}>
               <Ionicons name="arrow-forward" size={14} color="#6b7280" />
             </Animated.View>
 
@@ -742,8 +1038,7 @@ export default function InsightsScreen() {
 
       {!isPresentationMode && (
         <Text style={styles.footer}>
-          Graph analysis via Neo4j AuraDB · AI powered by OpenAI GPT-3.5{'\n'}
-          HACKHAZARDS '26 · Expo + Neo4j tracks
+          {"Graph analysis via Neo4j AuraDB · AI powered by OpenAI GPT-3.5\nHACKHAZARDS '26 · Expo + Neo4j tracks"}
         </Text>
       )}
     </ScrollView>
@@ -1069,5 +1364,98 @@ const styles = StyleSheet.create({
   },
   pathArrowBox: {
     paddingHorizontal: 2,
+  },
+  toast: {
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: Spacing.two,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'stretch',
+  },
+  toastText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+    flex: 1,
+  },
+  emptyLogBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.secondary,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+  },
+  emptyLogBtnText: {
+    color: '#1a1a2e',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  tooltipCard: {
+    marginTop: 14,
+    backgroundColor: '#16122d',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2a2456',
+    padding: 12,
+    alignSelf: 'stretch',
+  },
+  tooltipHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  tooltipDate: {
+    color: Colors.secondary,
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  tooltipMetrics: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 8,
+  },
+  tooltipMetricItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  tooltipMetricVal: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  tooltipDetailsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    backgroundColor: '#1f1a3a',
+    borderRadius: 8,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#2a2456',
+    marginBottom: 8,
+  },
+  tooltipDetailText: {
+    color: Colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  tooltipSubText: {
+    color: Colors.secondary,
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  tooltipNotes: {
+    color: Colors.textSecondary,
+    fontSize: 11,
+    fontStyle: 'italic',
+    borderTopWidth: 1,
+    borderTopColor: '#2a2456',
+    paddingTop: 6,
+    marginTop: 4,
   },
 });

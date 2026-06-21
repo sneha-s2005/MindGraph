@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable, Platform } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { StyleSheet, View, Text, ScrollView, Pressable, Platform, Alert, Animated } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -48,6 +48,52 @@ export default function DashboardScreen() {
   const [influentialHabit, setInfluentialHabit] = useState<{ name: string; impactPct: number; trend: string; reasoning: string } | null>(null);
   const [influentialActivity, setInfluentialActivity] = useState<{ name: string; impactScore: number; strength: string; isPositive: boolean } | null>(null);
   const [paths, setPaths] = useState<{ strongestPositive: { path: string; score: number }; strongestNegative: { path: string; score: number } } | null>(null);
+
+  // Animation values
+  const [pulseAnim] = useState(() => new Animated.Value(1));
+  const [glowAnim] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    // Pulse animation: loops scale between 1 and 1.05
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 1500,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1.0,
+          duration: 1500,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+      ])
+    );
+
+    // Glow animation: loops value between 0 and 1
+    const glow = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: false,
+        }),
+        Animated.timing(glowAnim, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: false,
+        }),
+      ])
+    );
+
+    pulse.start();
+    glow.start();
+
+    return () => {
+      pulse.stop();
+      glow.stop();
+    };
+  }, [pulseAnim, glowAnim]);
 
   useFocusEffect(
     useCallback(() => {
@@ -351,6 +397,27 @@ export default function DashboardScreen() {
     router.push('/log');
   };
 
+  const handleShowPathDetails = (type: 'catalyst' | 'risk') => {
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (type === 'catalyst') {
+      const title = '🌟 Strongest Catalyst Path';
+      const msg = `Consistent Sleep ➔ Mood ➔ Productivity\n\nThis Neo4j relationship path shows that consistent sleep (7+ hours) stabilizes your emotional state (Mood), which directly acts as a catalyst to boost your daily focus output (Productivity) by +${paths?.strongestPositive.score || 69} points.\n\nRecommendation:\nMaintain a fixed bedtime to protect this high-productivity loop!`;
+      if (Platform.OS === 'web') {
+        window.alert(`${title}\n\n${msg}`);
+      } else {
+        Alert.alert(title, msg, [{ text: 'Got it' }]);
+      }
+    } else {
+      const title = '⚠️ Critical Risk Path';
+      const msg = `Stress ➔ Sleep Deprivation ➔ Burnout\n\nThis warning path indicates that elevated daily stress levels interfere with your sleep quality, leading to sleep deprivation. A cumulative sleep deficit is the strongest leading indicator for mental burnout (Risk: ${paths?.strongestNegative.score || 9}%).\n\nRecommendation:\nIncorporate 10 minutes of evening meditation or reading to disengage from work stress before bedtime.`;
+      if (Platform.OS === 'web') {
+        window.alert(`${title}\n\n${msg}`);
+      } else {
+        Alert.alert(title, msg, [{ text: 'Got it', style: 'cancel' }]);
+      }
+    }
+  };
+
   const trendIcon = burnoutTrend === 'improving' ? 'trending-down' : burnoutTrend === 'worsening' ? 'trending-up' : 'remove';
   const trendColor = burnoutTrend === 'improving' ? Colors.success : burnoutTrend === 'worsening' ? Colors.danger : Colors.warning;
 
@@ -400,7 +467,7 @@ export default function DashboardScreen() {
             onPress={handleQuickLog}
           >
             <Ionicons name="create-outline" size={16} color="#1a1a2e" style={{ marginRight: 6 }} />
-            <Text style={styles.emptyLogBtnText}>Log Today's Mood</Text>
+             <Text style={styles.emptyLogBtnText}>{"Log Today's Mood"}</Text>
           </Pressable>
         </View>
       ) : (
@@ -423,10 +490,19 @@ export default function DashboardScreen() {
             <View style={styles.dashboardRow}>
               {/* BIS Circular Gauge Card */}
               <View style={styles.bisCard}>
-                <View style={styles.gradeCircle}>
+                <Animated.View style={[
+                  styles.gradeCircle,
+                  {
+                    transform: [{ scale: pulseAnim }],
+                    opacity: glowAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.92, 1],
+                    }),
+                  }
+                ]}>
                   <Text style={styles.gradeText}>{biGrade}</Text>
                   <Text style={styles.bisValText}>{biScore > 0 ? `${biScore}%` : '—%'}</Text>
-                </View>
+                </Animated.View>
                 <Text style={styles.bisLabel}>Intelligence Score (BIS)</Text>
                 <Text style={styles.bisSub}>Composite performance index</Text>
               </View>
@@ -471,7 +547,13 @@ export default function DashboardScreen() {
             <View style={styles.pathsCard}>
               <Text style={styles.pathsHeaderTitle}>Neo4j Relationship Path Discovery</Text>
               
-              <View style={styles.pathItem}>
+              <Pressable
+                onPress={() => handleShowPathDetails('catalyst')}
+                style={({ pressed }) => [
+                  styles.pathItem,
+                  pressed && { opacity: 0.75 }
+                ]}
+              >
                 <View style={styles.pathLabelRow}>
                   <View style={styles.pathIndicatorGreen} />
                   <Text style={styles.pathLabel}>Strongest Catalyst Path</Text>
@@ -480,9 +562,15 @@ export default function DashboardScreen() {
                 <View style={styles.pathTextContainer}>
                   <Text style={styles.pathText}>{paths && paths.strongestPositive.score > 0 ? paths.strongestPositive.path : '—'}</Text>
                 </View>
-              </View>
+              </Pressable>
 
-              <View style={styles.pathItem}>
+              <Pressable
+                onPress={() => handleShowPathDetails('risk')}
+                style={({ pressed }) => [
+                  styles.pathItem,
+                  pressed && { opacity: 0.75 }
+                ]}
+              >
                 <View style={styles.pathLabelRow}>
                   <View style={styles.pathIndicatorRed} />
                   <Text style={styles.pathLabel}>Critical Risk Path</Text>
@@ -491,12 +579,20 @@ export default function DashboardScreen() {
                 <View style={styles.pathTextContainer}>
                   <Text style={styles.pathText}>{paths && paths.strongestNegative.score > 0 ? paths.strongestNegative.path : '—'}</Text>
                 </View>
-              </View>
+              </Pressable>
             </View>
           </View>
 
           {/* Burnout Gauge */}
-          <View style={styles.gaugeCard}>
+          <Animated.View style={[
+            styles.gaugeCard,
+            {
+              borderColor: glowAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['#2a2456', '#5b4ea8']
+              })
+            }
+          ]}>
             <MoodGauge score={burnoutScore} />
             <View style={styles.trendRow}>
               <Ionicons name={trendIcon as any} size={14} color={trendColor} />
@@ -507,7 +603,7 @@ export default function DashboardScreen() {
             <Text style={styles.gaugeCaption}>
               Early Warning Engine · Dynamic Burnout Index
             </Text>
-          </View>
+          </Animated.View>
 
           {/* Stats 2x2 Grid */}
           <View style={styles.statsGrid}>
@@ -636,7 +732,7 @@ export default function DashboardScreen() {
         <Ionicons name="chevron-forward" size={18} color="#1a1a2e" />
       </Pressable>
 
-      {!isPresentationMode && <Text style={styles.footer}>HACKHAZARDS '26 · Neo4j + OpenAI · Expo</Text>}
+      {!isPresentationMode && <Text style={styles.footer}>{"HACKHAZARDS '26 · Neo4j + OpenAI · Expo"}</Text>}
     </ScrollView>
   );
 }

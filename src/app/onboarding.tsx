@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
   Text,
@@ -14,13 +14,11 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createUser } from '../services/api';
 import { Colors, Spacing } from '../constants/theme';
+import { UserContext } from './_layout';
 
-interface OnboardingScreenProps {
-  onComplete?: (userId: string, userName: string) => void;
-}
-
-export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
+export default function OnboardingScreen() {
   const router = useRouter();
+  const { login } = useContext(UserContext);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,23 +39,11 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
 
     try {
       const user = await createUser(name.trim(), email.trim().toLowerCase());
-      await AsyncStorage.setItem('@mindgraph_userId', user.userId);
-      await AsyncStorage.setItem('@mindgraph_userName', name.trim());
-      if (onComplete) {
-        onComplete(user.userId, name.trim());
-      } else {
-        router.replace('/');
-      }
+      await login(user.userId, name.trim());
     } catch (err) {
       // Backend unavailable — create a local-only userId so the app still works
       const localId = `local_${Date.now()}`;
-      await AsyncStorage.setItem('@mindgraph_userId', localId);
-      await AsyncStorage.setItem('@mindgraph_userName', name.trim());
-      if (onComplete) {
-        onComplete(localId, name.trim());
-      } else {
-        router.replace('/');
-      }
+      await login(localId, name.trim());
     } finally {
       setLoading(false);
     }
@@ -95,7 +81,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
           <Text style={styles.label}>Your Name</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. Anuja"
+            placeholder="e.g. Sneha"
             placeholderTextColor="#6b7280"
             value={name}
             onChangeText={setName}
@@ -106,7 +92,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
           <Text style={styles.label}>Email Address</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. anuja@example.com"
+            placeholder="e.g. sneha@example.com"
             placeholderTextColor="#6b7280"
             value={email}
             onChangeText={setEmail}

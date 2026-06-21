@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator, LogBox, Platform } from 'react-native';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { createContext } from 'react';
-import OnboardingScreen from './onboarding';
 import { Colors } from '../constants/theme';
 
 export const UserContext = createContext<{
@@ -25,6 +25,9 @@ export const UserContext = createContext<{
 LogBox.ignoreLogs([
   'Unknown event handler property `onPressIn`',
   'Unknown event handler property `onPressOut`',
+  'Unknown event handler property `onPressIn`',
+  'Unknown event handler property `onPressOut`',
+  'Unknown event handler property `Unknown event handler property`',
 ]);
 
 if (Platform.OS === 'web') {
@@ -42,10 +45,13 @@ if (Platform.OS === 'web') {
   };
 }
 
-export default function TabLayout() {
+function TabLayoutContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>('');
+  const router = useRouter();
+  const pathname = usePathname();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     async function checkUser() {
@@ -63,6 +69,16 @@ export default function TabLayout() {
     checkUser();
   }, []);
 
+  useEffect(() => {
+    if (!isLoading) {
+      if (!userId && pathname !== '/onboarding') {
+        router.replace('/onboarding');
+      } else if (userId && pathname === '/onboarding') {
+        router.replace('/');
+      }
+    }
+  }, [userId, isLoading, pathname]);
+
   const login = async (newUserId: string, newName: string) => {
     await AsyncStorage.setItem('@mindgraph_userId', newUserId);
     await AsyncStorage.setItem('@mindgraph_userName', newName);
@@ -77,27 +93,12 @@ export default function TabLayout() {
     setUserName('');
   };
 
-  const handleOnboardingComplete = (newUserId: string, newName: string) => {
-    login(newUserId, newName);
-  };
-
   if (isLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center' }}>
         <StatusBar style="light" />
         <ActivityIndicator color={Colors.secondary} size="large" />
       </View>
-    );
-  }
-
-  if (!userId) {
-    return (
-      <UserContext.Provider value={{ userId, userName, login, logout }}>
-        <View style={{ flex: 1, backgroundColor: Colors.background }}>
-          <StatusBar style="light" />
-          <OnboardingScreen onComplete={handleOnboardingComplete} />
-        </View>
-      </UserContext.Provider>
     );
   }
 
@@ -113,8 +114,8 @@ export default function TabLayout() {
               backgroundColor: '#1f1a3a',
               borderTopColor: '#2a2456',
               borderTopWidth: 1,
-              height: 60,
-              paddingBottom: 8,
+              height: 60 + insets.bottom,
+              paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
               paddingTop: 6,
             },
             tabBarLabelStyle: {
@@ -134,8 +135,6 @@ export default function TabLayout() {
             headerTitleAlign: 'center',
             headerShadowVisible: false,
           }}
-          // Pass userId/userName as screenOptions initialParams context
-          // Screens read from AsyncStorage directly for simplicity
         >
           <Tabs.Screen
             name="index"
@@ -190,10 +189,22 @@ export default function TabLayout() {
           {/* Hide onboarding from tab bar */}
           <Tabs.Screen
             name="onboarding"
-            options={{ href: null }}
+            options={{
+              href: null,
+              tabBarStyle: { display: 'none' },
+              headerShown: false,
+            }}
           />
         </Tabs>
       </View>
     </UserContext.Provider>
+  );
+}
+
+export default function TabLayout() {
+  return (
+    <SafeAreaProvider>
+      <TabLayoutContent />
+    </SafeAreaProvider>
   );
 }

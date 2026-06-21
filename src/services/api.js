@@ -1,6 +1,25 @@
+import Constants from 'expo-constants';
+
 // Central API service for MindGraph
 // Switch BASE_URL to your Render.com URL when deployed
-const BASE_URL = 'http://localhost:3000';
+const getBaseUrl = () => {
+  // For web platform
+  if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+    const hostname = window.location.hostname;
+    return `http://${hostname}:3000`;
+  }
+
+  // For native platforms in development (e.g. Expo Go)
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    const ip = hostUri.split(':')[0];
+    return `http://${ip}:3000`;
+  }
+
+  return 'http://localhost:3000';
+};
+
+const BASE_URL = getBaseUrl();
 
 async function apiFetch(path, options = {}) {
   try {

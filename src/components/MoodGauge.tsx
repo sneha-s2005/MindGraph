@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import Svg, { Path, Circle, Line, G, Text as SvgText } from 'react-native-svg';
 
@@ -29,9 +29,12 @@ function arcPath(cx: number, cy: number, r: number, startAngle: number, endAngle
 const FilteredPath = React.forwardRef(({ collapsable, ...props }: any, ref: any) => (
   <Path ref={ref} {...props} />
 ));
+FilteredPath.displayName = 'FilteredPath';
+
 const FilteredLine = React.forwardRef(({ collapsable, ...props }: any, ref: any) => (
   <Line ref={ref} {...props} />
 ));
+FilteredLine.displayName = 'FilteredLine';
 
 const AnimatedPath = Animated.createAnimatedComponent(FilteredPath) as any;
 const AnimatedLine = Animated.createAnimatedComponent(FilteredLine) as any;
@@ -44,7 +47,7 @@ const AnimatedLine = Animated.createAnimatedComponent(FilteredLine) as any;
  */
 export default function MoodGauge({ score = 0 }: MoodGaugeProps) {
   const clampedScore = Math.max(0, Math.min(100, score));
-  const animScore = useRef(new Animated.Value(0)).current;
+  const [animScore] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.timing(animScore, {
@@ -52,7 +55,7 @@ export default function MoodGauge({ score = 0 }: MoodGaugeProps) {
       duration: 1200,
       useNativeDriver: false,
     }).start();
-  }, [clampedScore]);
+  }, [clampedScore, animScore]);
 
   // Semi-circle length
   const ARC_LENGTH = Math.PI * RADIUS;

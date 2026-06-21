@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -13,7 +13,7 @@ interface InsightCardProps {
  * @param {boolean} loading - Show shimmer skeleton if true
  */
 export default function InsightCard({ insight, loading = false }: InsightCardProps) {
-  const shimmerAnim = useRef(new Animated.Value(0)).current;
+  const [shimmerAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (loading) {

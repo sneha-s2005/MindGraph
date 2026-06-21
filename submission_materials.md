@@ -92,6 +92,6 @@ The most challenging part of the project was connecting the Expo frontend to the
 If I were to start over, I would begin testing deployments on Render.com earlier to iron out network routing. Nonetheless, the hackathon prototype is a success. By combining a graph database, AI intelligence, and a clean mobile interface, MindGraph demonstrates that we can proactively intercept burnout before it takes a toll.
 
 **Links:**
-* **GitHub Repository:** [Insert GitHub URL]
-* **Expo Go / Base44 Demo:** [Insert Demo Link]
+* **GitHub Repository:** [github.com/sneha-s2005/MindGraph](https://github.com/sneha-s2005/MindGraph)
+* **Author:** [Sneha S](https://github.com/sneha-s2005)
 * **Tags:** `#neo4j` `#expo` `#reactnative` `#ai` `#hackathon` `#buildinpublic`

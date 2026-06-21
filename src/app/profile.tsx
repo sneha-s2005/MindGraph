@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing } from '../constants/theme';
-import { getEntries, clearAllEntries } from '../utils/storage';
+import { getEntries, clearAllEntries, saveEntry } from '../utils/storage';
 import { logMood, resetUserData } from '../services/api';
 import { UserContext } from './_layout';
 
@@ -131,6 +131,213 @@ export default function ProfileScreen() {
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(''), 2500);
+  };
+
+  const getPastDateString = (offset: number): string => {
+    const d = new Date();
+    d.setDate(d.getDate() - offset);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const handlePrepopulate = async () => {
+    setResyncing(true);
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const mockEntries = [
+        {
+          date: getPastDateString(9),
+          mood: 6,
+          energy: 'Medium' as const,
+          sleepHours: 7.6,
+          exerciseDuration: 0,
+          studyHours: 1.0,
+          workHours: 4.5,
+          socialInteraction: 'Co-workers',
+          stressLevel: 'Medium' as const,
+          goalTitle: 'Setup Project',
+          activityName: 'Coding',
+          habits: { sleep: true, exercise: false, meditation: false, deepWork: true },
+          notes: 'Started the project. Good initial progress.',
+        },
+        {
+          date: getPastDateString(8),
+          mood: 5,
+          energy: 'Low' as const,
+          sleepHours: 5.8,
+          exerciseDuration: 0,
+          studyHours: 0.5,
+          workHours: 6.0,
+          socialInteraction: 'Roommate',
+          stressLevel: 'High' as const,
+          goalTitle: 'API connection',
+          activityName: 'Research',
+          habits: { sleep: false, exercise: false, meditation: false, deepWork: false },
+          notes: 'Struggling with database setup. Felt pretty tired today.',
+        },
+        {
+          date: getPastDateString(7),
+          mood: 7,
+          energy: 'Medium' as const,
+          sleepHours: 7.5,
+          exerciseDuration: 20,
+          studyHours: 1.5,
+          workHours: 5.0,
+          socialInteraction: 'Mentor Mark',
+          stressLevel: 'Medium' as const,
+          goalTitle: 'Database Schema',
+          activityName: 'Walking',
+          habits: { sleep: true, exercise: true, meditation: false, deepWork: true },
+          notes: 'Good session with Mentor Mark. Helped clarify the schema design.',
+        },
+        {
+          date: getPastDateString(6),
+          mood: 6,
+          energy: 'Medium' as const,
+          sleepHours: 7.8,
+          exerciseDuration: 0,
+          studyHours: 2.0,
+          workHours: 5.5,
+          socialInteraction: 'Design Team',
+          stressLevel: 'Medium' as const,
+          goalTitle: 'UI Prototypes',
+          activityName: 'Reading',
+          habits: { sleep: true, exercise: false, meditation: true, deepWork: true },
+          notes: 'Refining the visual styles. Decent focus blocks.',
+        },
+        {
+          date: getPastDateString(5),
+          mood: 8,
+          energy: 'High' as const,
+          sleepHours: 8.0,
+          exerciseDuration: 30,
+          studyHours: 2.0,
+          workHours: 4.0,
+          socialInteraction: 'Family',
+          stressLevel: 'Low' as const,
+          goalTitle: 'Component library',
+          activityName: 'Gym Workout',
+          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
+          notes: 'Gym workout really boosted my energy today. Slept great!',
+        },
+        {
+          date: getPastDateString(4),
+          mood: 9,
+          energy: 'High' as const,
+          sleepHours: 8.2,
+          exerciseDuration: 45,
+          studyHours: 1.0,
+          workHours: 5.0,
+          socialInteraction: 'Friends',
+          stressLevel: 'Low' as const,
+          goalTitle: 'State management',
+          activityName: 'Cycling',
+          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
+          notes: 'Went cycling. Clear head, great flow state in code.',
+        },
+        {
+          date: getPastDateString(3),
+          mood: 7,
+          energy: 'Medium' as const,
+          sleepHours: 7.5,
+          exerciseDuration: 0,
+          studyHours: 3.0,
+          workHours: 6.0,
+          socialInteraction: 'Study Group',
+          stressLevel: 'Medium' as const,
+          goalTitle: 'Backend integration',
+          activityName: 'Reading',
+          habits: { sleep: true, exercise: false, meditation: false, deepWork: true },
+          notes: 'Worked in a group study session. Productive but a bit noisy.',
+        },
+        {
+          date: getPastDateString(2),
+          mood: 8,
+          energy: 'High' as const,
+          sleepHours: 7.8,
+          exerciseDuration: 30,
+          studyHours: 1.5,
+          workHours: 5.0,
+          socialInteraction: 'Mentor Mark',
+          stressLevel: 'Low' as const,
+          goalTitle: 'Interactive Graph',
+          activityName: 'Gym Workout',
+          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
+          notes: 'Implemented node drag force-directed simulation. Very satisfying!',
+        },
+        {
+          date: getPastDateString(1),
+          mood: 7,
+          energy: 'Medium' as const,
+          sleepHours: 7.0,
+          exerciseDuration: 20,
+          studyHours: 2.0,
+          workHours: 5.5,
+          socialInteraction: 'Co-workers',
+          stressLevel: 'Medium' as const,
+          goalTitle: 'Insights screen',
+          activityName: 'Walking',
+          habits: { sleep: true, exercise: true, meditation: false, deepWork: true },
+          notes: 'Walking during lunch helped clear developer fatigue.',
+        },
+        {
+          date: getPastDateString(0),
+          mood: 8,
+          energy: 'High' as const,
+          sleepHours: 8.0,
+          exerciseDuration: 30,
+          studyHours: 1.0,
+          workHours: 4.5,
+          socialInteraction: 'Mentor Mark',
+          stressLevel: 'Low' as const,
+          goalTitle: 'Polish UI Details',
+          activityName: 'Yoga',
+          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
+          notes: 'Pre-populated data is now working. Yoga in the morning made me feel very balanced.',
+        },
+      ];
+
+      // Save entries locally
+      for (const entry of mockEntries) {
+        await saveEntry(entry);
+      }
+
+      // If user is registered on Neo4j, attempt backend sync asynchronously
+      if (userId && !userId.startsWith('local_')) {
+        for (const entry of mockEntries) {
+          try {
+            await logMood({
+              userId,
+              userName,
+              score: entry.mood,
+              energyLevel: entry.energy,
+              sleepHours: entry.sleepHours,
+              exerciseDuration: entry.exerciseDuration,
+              studyHours: entry.studyHours,
+              workHours: entry.workHours,
+              socialInteraction: entry.socialInteraction,
+              stressLevel: entry.stressLevel,
+              goalTitle: entry.goalTitle,
+              activityName: entry.activityName,
+              notes: entry.notes,
+              habits: entry.habits,
+            });
+          } catch (syncErr) {
+            console.warn('Asynchronous sync failed for item:', entry.date, syncErr);
+          }
+        }
+      }
+
+      showToast('✅ Seeded 10 rich mock entries!');
+      await loadProfile();
+    } catch (err) {
+      console.error(err);
+      showToast('❌ Seeding failed.');
+    } finally {
+      setResyncing(false);
+    }
   };
 
   // Re-sync all local storage entries to Neo4j database
@@ -364,6 +571,24 @@ export default function ProfileScreen() {
           <View style={styles.settingsText}>
             <Text style={styles.settingsTitle}>Cloud Database Re-sync</Text>
             <Text style={styles.settingsDesc}>Force uploads all local storage logs to Neo4j.</Text>
+          </View>
+          {resyncing ? (
+            <ActivityIndicator color={Colors.secondary} size="small" />
+          ) : (
+            <Ionicons name="chevron-forward" size={16} color="#6b7280" />
+          )}
+        </Pressable>
+
+        {/* Pre-populate Sample Logs */}
+        <Pressable
+          style={styles.settingsRow}
+          disabled={resyncing}
+          onPress={handlePrepopulate}
+        >
+          <Ionicons name="construct-outline" size={20} color={Colors.secondary} />
+          <View style={styles.settingsText}>
+            <Text style={styles.settingsTitle}>Pre-populate Sample Logs</Text>
+            <Text style={styles.settingsDesc}>Loads 10 mock entries with rich goals/exercise data.</Text>
           </View>
           {resyncing ? (
             <ActivityIndicator color={Colors.secondary} size="small" />

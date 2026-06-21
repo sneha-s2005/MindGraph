@@ -286,7 +286,7 @@ export default function LogScreen() {
             placeholderTextColor="#6b7280"
           />
 
-          <Text style={[styles.inputLabel, { marginTop: Spacing.two }]}>Today's Target Goal</Text>
+          <Text style={[styles.inputLabel, { marginTop: Spacing.two }]}>{"Today's Target Goal"}</Text>
           <TextInput
             style={styles.fullInput}
             value={goalTitle}
