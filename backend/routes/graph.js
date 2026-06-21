@@ -60,7 +60,11 @@ router.get('/data/:userId', async (req, res) => {
       }
 
       if (rec.targetNode && rec.targetType) {
-        const targetId = rec.targetNode.id || `${rec.targetType.toLowerCase()}_${Date.now()}_${Math.random()}`;
+        let targetId = rec.targetNode.id;
+        if (!targetId) {
+          const nameOrTitle = rec.targetNode.title || rec.targetNode.name || '';
+          targetId = `${rec.targetType.toLowerCase()}_${nameOrTitle.replace(/\s+/g, '_')}`;
+        }
         let label = rec.targetNode.name || rec.targetNode.title || rec.targetType;
 
         if (rec.targetType === 'Mood') {
@@ -108,16 +112,20 @@ router.get('/data/:userId', async (req, res) => {
       MATCH (u)-[:LOGGED]->(m:Mood)
       WHERE m.date >= date() - duration({days: 7})
       MATCH (m)-[r:INFLUENCED_BY]->(x)
-      RETURN m.id AS moodId, type(r) AS relType, x.id AS targetId, labels(x)[0] AS targetType, x.name AS targetName
+      RETURN m.id AS moodId, type(r) AS relType, x.id AS targetId, labels(x)[0] AS targetType, coalesce(x.name, x.title) AS targetName
     `;
     const secondaryRecords = await runQuery(secondaryQuery, { userId });
 
     secondaryRecords.forEach((rec) => {
       const moodId = rec.moodId;
-      const targetId = rec.targetId;
+      let targetId = rec.targetId;
       const targetType = rec.targetType;
 
-      if (nodesMap.has(moodId) && targetId) {
+      if (nodesMap.has(moodId) && targetType) {
+        if (!targetId) {
+          const nameOrTitle = rec.targetName || '';
+          targetId = `${targetType.toLowerCase()}_${nameOrTitle.replace(/\s+/g, '_')}`;
+        }
         // If the habit/sleep node is not in our active map, add it
         if (!nodesMap.has(targetId)) {
           nodesMap.set(targetId, {

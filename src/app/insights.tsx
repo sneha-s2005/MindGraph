@@ -1,16 +1,20 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, Dimensions, Platform, Animated, Pressable } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { StyleSheet, View, Text, ScrollView, Dimensions, Platform, Animated, Pressable, useWindowDimensions } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { BarChart, LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing } from '../constants/theme';
-import { getEntries, saveEntry } from '../utils/storage';
-import { getInsights, getAiInsight, logMood } from '../services/api';
+import { getEntries } from '../utils/storage';
+import { getInsights, getAiInsight } from '../services/api';
+import { seedSampleLogs, clearAllDemoData } from '../utils/sampleData';
 import HabitCard from '../components/HabitCard';
 import InsightCard from '../components/InsightCard';
 
 export default function InsightsScreen() {
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isTablet = width >= 768;
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     let active = true;
@@ -255,196 +259,8 @@ export default function InsightsScreen() {
   const handlePrepopulate = async () => {
     setDataLoading(true);
     try {
-      const storedId = await AsyncStorage.getItem('@mindgraph_userId');
-      const storedName = await AsyncStorage.getItem('@mindgraph_userName');
-      const userId = storedId || '';
-      const userName = storedName || 'Friend';
-
-      const mockEntries = [
-        {
-          date: getPastDateString(9),
-          mood: 6,
-          energy: 'Medium' as const,
-          sleepHours: 7.6,
-          exerciseDuration: 0,
-          studyHours: 1.0,
-          workHours: 4.5,
-          socialInteraction: 'Co-workers',
-          stressLevel: 'Medium' as const,
-          goalTitle: 'Setup Project',
-          activityName: 'Coding',
-          habits: { sleep: true, exercise: false, meditation: false, deepWork: true },
-          notes: 'Started the project. Good initial progress.',
-        },
-        {
-          date: getPastDateString(8),
-          mood: 5,
-          energy: 'Low' as const,
-          sleepHours: 5.8,
-          exerciseDuration: 0,
-          studyHours: 0.5,
-          workHours: 6.0,
-          socialInteraction: 'Roommate',
-          stressLevel: 'High' as const,
-          goalTitle: 'API connection',
-          activityName: 'Research',
-          habits: { sleep: false, exercise: false, meditation: false, deepWork: false },
-          notes: 'Struggling with database setup. Felt pretty tired today.',
-        },
-        {
-          date: getPastDateString(7),
-          mood: 7,
-          energy: 'Medium' as const,
-          sleepHours: 7.5,
-          exerciseDuration: 20,
-          studyHours: 1.5,
-          workHours: 5.0,
-          socialInteraction: 'Mentor Mark',
-          stressLevel: 'Medium' as const,
-          goalTitle: 'Database Schema',
-          activityName: 'Walking',
-          habits: { sleep: true, exercise: true, meditation: false, deepWork: true },
-          notes: 'Good session with Mentor Mark. Helped clarify the schema design.',
-        },
-        {
-          date: getPastDateString(6),
-          mood: 6,
-          energy: 'Medium' as const,
-          sleepHours: 7.8,
-          exerciseDuration: 0,
-          studyHours: 2.0,
-          workHours: 5.5,
-          socialInteraction: 'Design Team',
-          stressLevel: 'Medium' as const,
-          goalTitle: 'UI Prototypes',
-          activityName: 'Reading',
-          habits: { sleep: true, exercise: false, meditation: true, deepWork: true },
-          notes: 'Refining the visual styles. Decent focus blocks.',
-        },
-        {
-          date: getPastDateString(5),
-          mood: 8,
-          energy: 'High' as const,
-          sleepHours: 8.0,
-          exerciseDuration: 30,
-          studyHours: 2.0,
-          workHours: 4.0,
-          socialInteraction: 'Family',
-          stressLevel: 'Low' as const,
-          goalTitle: 'Component library',
-          activityName: 'Gym Workout',
-          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
-          notes: 'Gym workout really boosted my energy today. Slept great!',
-        },
-        {
-          date: getPastDateString(4),
-          mood: 9,
-          energy: 'High' as const,
-          sleepHours: 8.2,
-          exerciseDuration: 45,
-          studyHours: 1.0,
-          workHours: 5.0,
-          socialInteraction: 'Friends',
-          stressLevel: 'Low' as const,
-          goalTitle: 'State management',
-          activityName: 'Cycling',
-          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
-          notes: 'Went cycling. Clear head, great flow state in code.',
-        },
-        {
-          date: getPastDateString(3),
-          mood: 7,
-          energy: 'Medium' as const,
-          sleepHours: 7.5,
-          exerciseDuration: 0,
-          studyHours: 3.0,
-          workHours: 6.0,
-          socialInteraction: 'Study Group',
-          stressLevel: 'Medium' as const,
-          goalTitle: 'Backend integration',
-          activityName: 'Reading',
-          habits: { sleep: true, exercise: false, meditation: false, deepWork: true },
-          notes: 'Worked in a group study session. Productive but a bit noisy.',
-        },
-        {
-          date: getPastDateString(2),
-          mood: 8,
-          energy: 'High' as const,
-          sleepHours: 7.8,
-          exerciseDuration: 30,
-          studyHours: 1.5,
-          workHours: 5.0,
-          socialInteraction: 'Mentor Mark',
-          stressLevel: 'Low' as const,
-          goalTitle: 'Interactive Graph',
-          activityName: 'Gym Workout',
-          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
-          notes: 'Implemented node drag force-directed simulation. Very satisfying!',
-        },
-        {
-          date: getPastDateString(1),
-          mood: 7,
-          energy: 'Medium' as const,
-          sleepHours: 7.0,
-          exerciseDuration: 20,
-          studyHours: 2.0,
-          workHours: 5.5,
-          socialInteraction: 'Co-workers',
-          stressLevel: 'Medium' as const,
-          goalTitle: 'Insights screen',
-          activityName: 'Walking',
-          habits: { sleep: true, exercise: true, meditation: false, deepWork: true },
-          notes: 'Walking during lunch helped clear developer fatigue.',
-        },
-        {
-          date: getPastDateString(0),
-          mood: 8,
-          energy: 'High' as const,
-          sleepHours: 8.0,
-          exerciseDuration: 30,
-          studyHours: 1.0,
-          workHours: 4.5,
-          socialInteraction: 'Mentor Mark',
-          stressLevel: 'Low' as const,
-          goalTitle: 'Polish UI Details',
-          activityName: 'Yoga',
-          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
-          notes: 'Pre-populated data is now working. Yoga in the morning made me feel very balanced.',
-        },
-      ];
-
-      // Save entries locally
-      for (const entry of mockEntries) {
-        await saveEntry(entry);
-      }
-
-      // If user is registered on Neo4j, attempt backend sync asynchronously
-      if (userId && !userId.startsWith('local_')) {
-        for (const entry of mockEntries) {
-          try {
-            await logMood({
-              userId,
-              userName,
-              score: entry.mood,
-              energyLevel: entry.energy,
-              sleepHours: entry.sleepHours,
-              exerciseDuration: entry.exerciseDuration,
-              studyHours: entry.studyHours,
-              workHours: entry.workHours,
-              socialInteraction: entry.socialInteraction,
-              stressLevel: entry.stressLevel,
-              goalTitle: entry.goalTitle,
-              activityName: entry.activityName,
-              notes: entry.notes,
-              habits: entry.habits,
-            });
-          } catch (syncErr) {
-            console.warn('Asynchronous sync failed for item:', entry.date, syncErr);
-          }
-        }
-      }
-
-      showToast('✅ Seeded 10 rich mock entries!');
+      await seedSampleLogs(10);
+      showToast('✅ Seeded 10 sample logs! Refreshing insights...');
       setReloadTrigger((prev) => prev + 1);
     } catch (err) {
       console.error(err);
@@ -452,6 +268,8 @@ export default function InsightsScreen() {
       setDataLoading(false);
     }
   };
+
+
 
   function calculateLocalProductivitySingle(entry: any) {
     const totalFocusHours = parseFloat(String(entry.workHours || 0)) + parseFloat(String(entry.studyHours || 0));
@@ -594,55 +412,15 @@ export default function InsightsScreen() {
   const trendColor = burnoutTrend === 'improving' ? Colors.success : burnoutTrend === 'worsening' ? Colors.danger : Colors.warning;
   const trendLabel = burnoutTrend === 'improving' ? 'Improving 📈' : burnoutTrend === 'worsening' ? 'Worsening 📉' : 'Stable ➡️';
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.headerTitle}>Analytics & Insights</Text>
-      <Text style={styles.headerSub}>Behavioral Intelligence OS · Full weekly analysis</Text>
+  const HeaderContent = (
+    <View style={styles.pageHeader}>
+      <Text style={styles.pageTitle}>Analytics & Insights</Text>
+      <Text style={styles.pageSub}>Behavioral Intelligence OS · Full weekly analysis</Text>
+    </View>
+  );
 
-      {toast ? (
-        <View style={[styles.toast, { backgroundColor: toast.startsWith('✅') ? Colors.success : Colors.danger }]}>
-          <Text style={styles.toastText}>{toast}</Text>
-        </View>
-      ) : null}
-
-      {weeklyData.length < 3 ? (
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyGraphic}>
-            <Ionicons name="bar-chart-outline" size={48} color={Colors.secondary} />
-          </View>
-          <Text style={styles.emptyTitle}>Insights Locked</Text>
-          <Text style={styles.emptyTextPremium}>
-            Need at least 3 days of history to generate insights. Log at least 3 days of activity to unlock relationship intelligence.
-          </Text>
-          <Pressable
-            style={({ pressed }) => [styles.emptyLogBtn, pressed && { opacity: 0.85 }, { marginTop: 20 }]}
-            onPress={handlePrepopulate}
-          >
-            <Ionicons name="construct-outline" size={16} color="#1a1a2e" style={{ marginRight: 6 }} />
-            <Text style={styles.emptyLogBtnText}>Pre-populate Sample Logs</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <>
-          {/* Summary stats */}
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statEmoji}>📊</Text>
-              <Text style={styles.statVal}>{moodAverage > 0 ? `${moodAverage}/10` : '—'}</Text>
-              <Text style={styles.statLabel}>Avg Mood</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statEmoji}>⚡</Text>
-          <Text style={styles.statVal}>{productivityAverage > 0 ? `${productivityAverage}%` : '—'}</Text>
-          <Text style={styles.statLabel}>Avg Productivity</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statEmoji}>🎯</Text>
-          <Text style={styles.statVal}>{consistencyScore}%</Text>
-          <Text style={styles.statLabel}>Consistency</Text>
-        </View>
-      </View>
-
+  const MainContent = (
+    <View style={styles.columnInner}>
       {/* 7-day Mood Bar Chart */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>7-Day Mood Trend</Text>
@@ -650,7 +428,7 @@ export default function InsightsScreen() {
           <View style={styles.chartWrap}>
             <BarChart
               data={{ labels, datasets: [{ data: chartMoodValues }] }}
-              width={chartWidth}
+              width={isTablet ? 400 : chartWidth}
               height={180}
               yAxisLabel=""
               yAxisSuffix=""
@@ -684,7 +462,7 @@ export default function InsightsScreen() {
           <View style={styles.chartWrap}>
             <LineChart
               data={{ labels, datasets: [{ data: chartProdValues }] }}
-              width={chartWidth}
+              width={isTablet ? 400 : chartWidth}
               height={180}
               yAxisLabel=""
               yAxisSuffix="%"
@@ -766,6 +544,29 @@ export default function InsightsScreen() {
             <Text style={styles.sleepImpactVal}>Mood: {sleepImpact.badSleepMood}/10</Text>
             <Text style={styles.sleepImpactVal}>Productivity: {sleepImpact.badSleepProd}%</Text>
           </View>
+        </View>
+      </View>
+    </View>
+  );
+
+  const LeftContent = (
+    <View style={styles.columnInner}>
+      {/* Summary stats */}
+      <View style={styles.statsRow}>
+        <View style={styles.statCard}>
+          <Text style={styles.statEmoji}>📊</Text>
+          <Text style={styles.statVal}>{moodAverage > 0 ? `${moodAverage}/10` : '—'}</Text>
+          <Text style={styles.statLabel}>Avg Mood</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statEmoji}>⚡</Text>
+          <Text style={styles.statVal}>{productivityAverage > 0 ? `${productivityAverage}%` : '—'}</Text>
+          <Text style={styles.statLabel}>Avg Productivity</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statEmoji}>🎯</Text>
+          <Text style={styles.statVal}>{consistencyScore}%</Text>
+          <Text style={styles.statLabel}>Consistency</Text>
         </View>
       </View>
 
@@ -1033,51 +834,139 @@ export default function InsightsScreen() {
           </View>
         )}
       </View>
-      </>
-      )}
+    </View>
+  );
 
-      {!isPresentationMode && (
-        <Text style={styles.footer}>
-          {"Graph analysis via Neo4j AuraDB · AI powered by OpenAI GPT-3.5\nHACKHAZARDS '26 · Expo + Neo4j tracks"}
-        </Text>
-      )}
-    </ScrollView>
+  return (
+    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+      {toast ? (
+        <View style={[styles.toast, { backgroundColor: toast.startsWith('❌') ? Colors.danger : Colors.success }]}>
+          <Ionicons
+            name={toast.startsWith('❌') ? 'close-circle' : 'checkmark-circle'}
+            size={18}
+            color="#fff"
+            style={{ marginRight: 8 }}
+          />
+          <Text style={styles.toastText}>{toast}</Text>
+        </View>
+      ) : null}
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        {HeaderContent}
+
+        {weeklyData.length < 3 ? (
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyGraphic}>
+              <Ionicons name="bar-chart-outline" size={48} color={Colors.secondary} />
+            </View>
+            <Text style={styles.emptyTitle}>Insights Locked</Text>
+            <Text style={styles.emptyTextPremium}>
+              Need at least 3 days of history to generate insights. Log at least 3 days of activity to unlock relationship intelligence.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <Pressable
+                style={({ pressed }) => [styles.emptyLogBtn, pressed && { opacity: 0.85 }]}
+                onPress={() => router.push('/log')}
+              >
+                <Ionicons name="create-outline" size={16} color="#1a1a2e" style={{ marginRight: 6 }} />
+                <Text style={styles.emptyLogBtnText}>Log Today</Text>
+              </Pressable>
+            </View>
+            <View style={styles.emptyTipCard}>
+              <Ionicons name="information-circle-outline" size={16} color={Colors.secondary} style={{ marginRight: 8 }} />
+              <Text style={styles.emptyTipText}>
+                To load sample data, go to <Text style={{ color: Colors.secondary, fontWeight: 'bold' }}>Profile → Pre-populate Sample Logs</Text>
+              </Text>
+            </View>
+          </View>
+        ) : isTablet ? (
+          <View style={styles.tabletLayout}>
+            <View style={styles.leftColumn}>{LeftContent}</View>
+            <View style={styles.mainColumn}>{MainContent}</View>
+          </View>
+        ) : (
+          <View style={styles.mobileLayout}>
+            {MainContent}
+            {LeftContent}
+          </View>
+        )}
+
+        {!isPresentationMode && (
+          <Text style={styles.footer}>
+            {"Graph analysis via Neo4j AuraDB · AI powered by OpenAI GPT-3.5\nHACKHAZARDS '26 · Expo + Neo4j tracks"}
+          </Text>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   content: {
-    padding: Spacing.three,
-    maxWidth: Platform.OS === 'web' ? 580 : '100%',
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 48,
+    maxWidth: Platform.OS === 'web' ? 1100 : '100%',
     alignSelf: 'center',
     width: '100%',
-    paddingBottom: 40,
   },
+  tabletLayout: {
+    flexDirection: 'row',
+    alignSelf: 'stretch',
+    gap: 24,
+    width: '100%',
+    marginTop: 4,
+    alignItems: 'flex-start',
+  },
+  mobileLayout: {
+    flexDirection: 'column',
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+  leftColumn: {
+    flex: 1.1,
+    gap: 20,
+  },
+  mainColumn: {
+    flex: 1.2,
+    gap: 20,
+  },
+  columnInner: {
+    alignSelf: 'stretch',
+    gap: 20,
+  },
+  pageHeader: { marginBottom: 28 },
+  pageTitle: { fontSize: 26, fontWeight: '800', color: Colors.text, letterSpacing: -0.5 },
+  pageSub: { fontSize: 14, color: Colors.textSecondary, marginTop: 6 },
   headerTitle: { fontSize: 22, fontWeight: 'bold', color: Colors.text, marginTop: Spacing.two },
   headerSub: { fontSize: 13, color: Colors.textSecondary, marginTop: 4, marginBottom: Spacing.three },
   
   statsRow: {
-    flexDirection: 'row', gap: 8, marginBottom: Spacing.three, alignSelf: 'stretch',
+    flexDirection: 'row', gap: 12, marginBottom: 20, alignSelf: 'stretch',
   },
   statCard: {
-    flex: 1, backgroundColor: '#1f1a3a', borderRadius: 14,
-    padding: 12, alignItems: 'center', borderWidth: 1, borderColor: '#2a2456', gap: 4,
+    flex: 1, backgroundColor: '#13102a', borderRadius: 16,
+    paddingVertical: 18, paddingHorizontal: 12, alignItems: 'center',
+    borderWidth: 1, borderColor: '#221e42', gap: 6,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15, shadowRadius: 6, elevation: 2,
   },
-  statEmoji: { fontSize: 20 },
-  statVal: { color: Colors.text, fontSize: 16, fontWeight: 'bold', textAlign: 'center' },
-  statLabel: { color: Colors.textSecondary, fontSize: 10, textAlign: 'center' },
+  statEmoji: { fontSize: 24 },
+  statVal: { color: Colors.text, fontSize: 18, fontWeight: '800', textAlign: 'center' },
+  statLabel: { color: Colors.textSecondary, fontSize: 11, textAlign: 'center', fontWeight: '500' },
   
   card: {
-    alignSelf: 'stretch', backgroundColor: '#1f1a3a', borderRadius: 16,
-    padding: Spacing.three, borderWidth: 1, borderColor: '#2a2456', marginBottom: Spacing.three,
+    alignSelf: 'stretch', backgroundColor: '#13102a', borderRadius: 20,
+    padding: 20, borderWidth: 1, borderColor: '#221e42', marginBottom: 4,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18, shadowRadius: 8, elevation: 3,
   },
-  cardUnpadded: { alignSelf: 'stretch', marginBottom: Spacing.three },
-  cardTitle: { fontSize: 16, fontWeight: 'bold', color: Colors.text, marginBottom: 4 },
-  cardSub: { fontSize: 12, color: Colors.textSecondary, marginBottom: Spacing.two },
-  chartWrap: { alignItems: 'center', marginTop: 8 },
-  emptyChart: { alignItems: 'center', paddingVertical: 24, gap: 8 },
-  emptyText: { color: Colors.textSecondary, fontSize: 12, textAlign: 'center' },
+  cardUnpadded: { alignSelf: 'stretch', marginBottom: 4 },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: Colors.text, marginBottom: 6 },
+  cardSub: { fontSize: 13, color: Colors.textSecondary, marginBottom: 14 },
+  chartWrap: { alignItems: 'center', marginTop: 10 },
+  emptyChart: { alignItems: 'center', paddingVertical: 28, gap: 10 },
+  emptyText: { color: Colors.textSecondary, fontSize: 13, textAlign: 'center' },
   
   sleepImpactContainer: {
     flexDirection: 'row', gap: 10, marginTop: 10,
@@ -1366,17 +1255,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   toast: {
+    position: 'absolute',
+    top: 24,
+    left: 24,
+    right: 24,
     borderRadius: 12,
-    padding: 12,
-    marginBottom: Spacing.two,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'stretch',
+    zIndex: 99999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 10,
   },
   toastText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
     flex: 1,
   },
   emptyLogBtn: {
@@ -1457,5 +1354,36 @@ const styles = StyleSheet.create({
     borderTopColor: '#2a2456',
     paddingTop: 6,
     marginTop: 4,
+  },
+  emptyLogBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.secondary,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+  },
+  emptyLogBtnText: {
+    color: '#1a1a2e',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  emptyTipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#1f1a3a',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.secondary + '44',
+    padding: 14,
+    marginTop: 20,
+    maxWidth: 400,
+    alignSelf: 'center',
+  },
+  emptyTipText: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 20,
+    flex: 1,
   },
 });

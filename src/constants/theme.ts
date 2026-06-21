@@ -1,20 +1,20 @@
 import { Platform } from 'react-native';
 
 export const Colors = {
-  background: '#1a1a2e',
-  primary: '#7c3aed', // Purple
-  secondary: '#14b8a6', // Teal
-  card: '#1f1a3a', // Lighter dark purple for card background
-  cardSecondary: '#252147', // Slightly lighter/different card background
+  background: '#090714', // Ultra deep space indigo
+  primary: '#8b5cf6', // Vibrant modern purple
+  secondary: '#06b6d4', // Neon Cyan
+  card: '#16122d', // Rich deep slate indigo for cards
+  cardSecondary: '#201a3d', // Sleek contrasting card background
   text: '#ffffff',
-  textSecondary: '#9ca3af', // Gray subtext
-  textMuted: '#6b7280',
-  border: '#2a2456',
-  success: '#10b981',
-  danger: '#ef4444',
-  warning: '#f59e0b',
-  sliderMinimum: '#7c3aed',
-  sliderMaximum: '#2a2456',
+  textSecondary: '#a1a1aa', // Clean gray subtext
+  textMuted: '#71717a',
+  border: '#272145', // Violet border
+  success: '#10b981', // Vivid success emerald
+  danger: '#f43f5e', // Vibrant rose danger
+  warning: '#fb923c', // Warm orange warning
+  sliderMinimum: '#8b5cf6',
+  sliderMaximum: '#272145',
 } as const;
 
 export const Fonts = Platform.select({

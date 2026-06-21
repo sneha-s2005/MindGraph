@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useContext } from 'react';
 import {
   StyleSheet, View, Text, ScrollView, Pressable,
-  ActivityIndicator, Platform, Alert, TextInput
+  ActivityIndicator, Platform, Alert, TextInput,
+  useWindowDimensions
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,11 +11,14 @@ import * as Haptics from 'expo-haptics';
 import { Colors, Spacing } from '../constants/theme';
 import { getEntries, clearAllEntries, saveEntry } from '../utils/storage';
 import { logMood, resetUserData } from '../services/api';
+import { seedSampleLogs, clearAllDemoData } from '../utils/sampleData';
 import { UserContext } from './_layout';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { logout } = useContext(UserContext);
+  const { width } = useWindowDimensions();
+  const isTablet = width >= 768;
   const [userName, setUserName] = useState('');
   const [userId, setUserId] = useState('');
   const [entriesCount, setEntriesCount] = useState(0);
@@ -28,6 +32,14 @@ export default function ProfileScreen() {
   // Editing username state
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState('');
+
+  // Sample log picker state
+  const [showSamplePicker, setShowSamplePicker] = useState(false);
+  const [sampleCount, setSampleCount] = useState(10);
+
+  // Inline confirm dialog states (replaces window.confirm and Alert which are unreliable on web)
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const loadProfile = async () => {
     const [name, id, presMode, storedUnlocksRaw] = await Promise.all([
@@ -142,195 +154,13 @@ export default function ProfileScreen() {
     return `${year}-${month}-${day}`;
   };
 
-  const handlePrepopulate = async () => {
+  const handlePrepopulate = async (count: number) => {
+    setShowSamplePicker(false);
     setResyncing(true);
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      const mockEntries = [
-        {
-          date: getPastDateString(9),
-          mood: 6,
-          energy: 'Medium' as const,
-          sleepHours: 7.6,
-          exerciseDuration: 0,
-          studyHours: 1.0,
-          workHours: 4.5,
-          socialInteraction: 'Co-workers',
-          stressLevel: 'Medium' as const,
-          goalTitle: 'Setup Project',
-          activityName: 'Coding',
-          habits: { sleep: true, exercise: false, meditation: false, deepWork: true },
-          notes: 'Started the project. Good initial progress.',
-        },
-        {
-          date: getPastDateString(8),
-          mood: 5,
-          energy: 'Low' as const,
-          sleepHours: 5.8,
-          exerciseDuration: 0,
-          studyHours: 0.5,
-          workHours: 6.0,
-          socialInteraction: 'Roommate',
-          stressLevel: 'High' as const,
-          goalTitle: 'API connection',
-          activityName: 'Research',
-          habits: { sleep: false, exercise: false, meditation: false, deepWork: false },
-          notes: 'Struggling with database setup. Felt pretty tired today.',
-        },
-        {
-          date: getPastDateString(7),
-          mood: 7,
-          energy: 'Medium' as const,
-          sleepHours: 7.5,
-          exerciseDuration: 20,
-          studyHours: 1.5,
-          workHours: 5.0,
-          socialInteraction: 'Mentor Mark',
-          stressLevel: 'Medium' as const,
-          goalTitle: 'Database Schema',
-          activityName: 'Walking',
-          habits: { sleep: true, exercise: true, meditation: false, deepWork: true },
-          notes: 'Good session with Mentor Mark. Helped clarify the schema design.',
-        },
-        {
-          date: getPastDateString(6),
-          mood: 6,
-          energy: 'Medium' as const,
-          sleepHours: 7.8,
-          exerciseDuration: 0,
-          studyHours: 2.0,
-          workHours: 5.5,
-          socialInteraction: 'Design Team',
-          stressLevel: 'Medium' as const,
-          goalTitle: 'UI Prototypes',
-          activityName: 'Reading',
-          habits: { sleep: true, exercise: false, meditation: true, deepWork: true },
-          notes: 'Refining the visual styles. Decent focus blocks.',
-        },
-        {
-          date: getPastDateString(5),
-          mood: 8,
-          energy: 'High' as const,
-          sleepHours: 8.0,
-          exerciseDuration: 30,
-          studyHours: 2.0,
-          workHours: 4.0,
-          socialInteraction: 'Family',
-          stressLevel: 'Low' as const,
-          goalTitle: 'Component library',
-          activityName: 'Gym Workout',
-          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
-          notes: 'Gym workout really boosted my energy today. Slept great!',
-        },
-        {
-          date: getPastDateString(4),
-          mood: 9,
-          energy: 'High' as const,
-          sleepHours: 8.2,
-          exerciseDuration: 45,
-          studyHours: 1.0,
-          workHours: 5.0,
-          socialInteraction: 'Friends',
-          stressLevel: 'Low' as const,
-          goalTitle: 'State management',
-          activityName: 'Cycling',
-          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
-          notes: 'Went cycling. Clear head, great flow state in code.',
-        },
-        {
-          date: getPastDateString(3),
-          mood: 7,
-          energy: 'Medium' as const,
-          sleepHours: 7.5,
-          exerciseDuration: 0,
-          studyHours: 3.0,
-          workHours: 6.0,
-          socialInteraction: 'Study Group',
-          stressLevel: 'Medium' as const,
-          goalTitle: 'Backend integration',
-          activityName: 'Reading',
-          habits: { sleep: true, exercise: false, meditation: false, deepWork: true },
-          notes: 'Worked in a group study session. Productive but a bit noisy.',
-        },
-        {
-          date: getPastDateString(2),
-          mood: 8,
-          energy: 'High' as const,
-          sleepHours: 7.8,
-          exerciseDuration: 30,
-          studyHours: 1.5,
-          workHours: 5.0,
-          socialInteraction: 'Mentor Mark',
-          stressLevel: 'Low' as const,
-          goalTitle: 'Interactive Graph',
-          activityName: 'Gym Workout',
-          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
-          notes: 'Implemented node drag force-directed simulation. Very satisfying!',
-        },
-        {
-          date: getPastDateString(1),
-          mood: 7,
-          energy: 'Medium' as const,
-          sleepHours: 7.0,
-          exerciseDuration: 20,
-          studyHours: 2.0,
-          workHours: 5.5,
-          socialInteraction: 'Co-workers',
-          stressLevel: 'Medium' as const,
-          goalTitle: 'Insights screen',
-          activityName: 'Walking',
-          habits: { sleep: true, exercise: true, meditation: false, deepWork: true },
-          notes: 'Walking during lunch helped clear developer fatigue.',
-        },
-        {
-          date: getPastDateString(0),
-          mood: 8,
-          energy: 'High' as const,
-          sleepHours: 8.0,
-          exerciseDuration: 30,
-          studyHours: 1.0,
-          workHours: 4.5,
-          socialInteraction: 'Mentor Mark',
-          stressLevel: 'Low' as const,
-          goalTitle: 'Polish UI Details',
-          activityName: 'Yoga',
-          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
-          notes: 'Pre-populated data is now working. Yoga in the morning made me feel very balanced.',
-        },
-      ];
-
-      // Save entries locally
-      for (const entry of mockEntries) {
-        await saveEntry(entry);
-      }
-
-      // If user is registered on Neo4j, attempt backend sync asynchronously
-      if (userId && !userId.startsWith('local_')) {
-        for (const entry of mockEntries) {
-          try {
-            await logMood({
-              userId,
-              userName,
-              score: entry.mood,
-              energyLevel: entry.energy,
-              sleepHours: entry.sleepHours,
-              exerciseDuration: entry.exerciseDuration,
-              studyHours: entry.studyHours,
-              workHours: entry.workHours,
-              socialInteraction: entry.socialInteraction,
-              stressLevel: entry.stressLevel,
-              goalTitle: entry.goalTitle,
-              activityName: entry.activityName,
-              notes: entry.notes,
-              habits: entry.habits,
-            });
-          } catch (syncErr) {
-            console.warn('Asynchronous sync failed for item:', entry.date, syncErr);
-          }
-        }
-      }
-
-      showToast('✅ Seeded 10 rich mock entries!');
+      await seedSampleLogs(count);
+      showToast(`✅ Seeded ${count} sample log${count > 1 ? 's' : ''}! Refresh other pages to see data.`);
       await loadProfile();
     } catch (err) {
       console.error(err);
@@ -384,27 +214,20 @@ export default function ProfileScreen() {
     }
   };
 
-  // Clear cache and log out
+  // Clear ALL cache, delete account and log out to onboarding
   const handleClearCache = async () => {
-    const performClear = async () => {
-      await clearAllEntries();
-      await logout();
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    };
+    setShowLogoutConfirm(true);
+  };
 
-    if (Platform.OS === 'web') {
-      const confirm = window.confirm('Are you sure you want to reset MindGraph? All local data and profile settings will be deleted.');
-      if (confirm) performClear();
-    } else {
-      Alert.alert(
-        'Reset App?',
-        'This will erase all your logged days and log you out. This action cannot be undone.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Reset Everything', style: 'destructive', onPress: performClear },
-        ]
-      );
+  const performLogout = async () => {
+    setShowLogoutConfirm(false);
+    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    if (userId && !userId.startsWith('local_')) {
+      try { await resetUserData(userId); } catch {}
     }
+    await AsyncStorage.clear();
+    await AsyncStorage.setItem('@mindgraph_show_logout_toast', 'true');
+    await logout();
   };
 
   const handleUpdateName = async () => {
@@ -422,48 +245,27 @@ export default function ProfileScreen() {
     showToast(`✅ Presentation Mode: ${nextVal ? 'ENABLED' : 'DISABLED'}`);
   };
 
-  const handleClearDemoData = async () => {
-    const performClear = async () => {
-      setResyncing(true);
-      try {
-        if (userId && !userId.startsWith('local_')) {
-          try {
-            await resetUserData(userId);
-          } catch (apiErr) {
-            console.warn('Failed to delete user nodes from Neo4j server:', apiErr);
-          }
-        }
-        await Promise.all([
-          AsyncStorage.removeItem('@mindgraph_entries_v2'),
-          AsyncStorage.removeItem('@mindgraph_userId'),
-          AsyncStorage.removeItem('@mindgraph_userName'),
-          AsyncStorage.removeItem('@mindgraph_badge_unlocks'),
-          AsyncStorage.removeItem('@mindgraph_presentation_mode'),
-        ]);
-        await logout();
-        showToast('✅ Demo data cleared. Redirecting...');
-        if (Platform.OS !== 'web') {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        }
-      } catch (err) {
-        showToast('❌ Clear operation failed.');
-      } finally {
-        setResyncing(false);
-      }
-    };
+  const handleClearDemoData = () => {
+    setShowClearConfirm(true);
+  };
 
-    if (Platform.OS === 'web') {
-      const confirm = window.confirm('Clear all demo data? This deletes all local and remote Neo4j nodes, logs, and resets onboarding.');
-      if (confirm) performClear();
-    } else {
-      Alert.alert(
-        'Clear Demo & Test Data?',
-        'This completely purges your local device logs, wipes your Neo4j node cluster, and resets the onboarding state. This is intended for final hackathon demo runs.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Purge Demo Data', style: 'destructive', onPress: performClear },
-        ]
-      );
+  const performClearDemoData = async () => {
+    setShowClearConfirm(false);
+    setResyncing(true);
+    try {
+      await AsyncStorage.removeItem('@mindgraph_entries_v2');
+      await AsyncStorage.removeItem('@mindgraph_badge_unlocks');
+      // Also attempt Neo4j cleanup (best-effort)
+      if (userId && !userId.startsWith('local_')) {
+        try { await resetUserData(userId); } catch {}
+      }
+      showToast('✅ All demo & test data deleted!');
+      await loadProfile();
+    } catch (err) {
+      console.error('Clear failed:', err);
+      showToast('❌ Clear operation failed.');
+    } finally {
+      setResyncing(false);
     }
   };
 
@@ -475,47 +277,45 @@ export default function ProfileScreen() {
     { title: 'Habit Hero', desc: 'Complete habits for 10 days', icon: 'ribbon', unlocked: !!badgeUnlocks.habit, date: badgeUnlocks.habit },
   ];
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.profileHeader}>
+  const HeaderContent = (
+    <View style={styles.profileHeader}>
+      <View style={styles.avatarWrap}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
         </View>
-
-        {isEditingName ? (
-          <View style={styles.editNameRow}>
-            <TextInput
-              style={styles.nameInput}
-              value={editName}
-              onChangeText={setEditName}
-              placeholder="Your name"
-              placeholderTextColor="#6b7280"
-              autoFocus
-            />
-            <Pressable style={styles.saveBtn} onPress={handleUpdateName}>
-              <Ionicons name="checkmark" size={18} color="#1a1a2e" />
-            </Pressable>
-            <Pressable style={styles.cancelBtn} onPress={() => setIsEditingName(false)}>
-              <Ionicons name="close" size={18} color="#fff" />
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.nameRow}>
-            <Text style={styles.userName}>{userName}</Text>
-            <Pressable style={styles.editIcon} onPress={() => setIsEditingName(true)}>
-              <Ionicons name="create-outline" size={16} color={Colors.secondary} />
-            </Pressable>
-          </View>
-        )}
-        <Text style={styles.userIdText}>ID: {isPresentationMode ? '[Hidden in Presentation Mode]' : (userId || 'Local Offline Mode')}</Text>
       </View>
 
-      {toast ? (
-        <View style={[styles.toast, { backgroundColor: toast.startsWith('❌') ? Colors.danger : Colors.success }]}>
-          <Text style={styles.toastText}>{toast}</Text>
+      {isEditingName ? (
+        <View style={styles.editNameRow}>
+          <TextInput
+            style={styles.nameInput}
+            value={editName}
+            onChangeText={setEditName}
+            placeholder="Your name"
+            placeholderTextColor="#6b7280"
+            autoFocus
+          />
+          <Pressable style={styles.saveBtn} onPress={handleUpdateName}>
+            <Ionicons name="checkmark" size={18} color="#1a1a2e" />
+          </Pressable>
+          <Pressable style={styles.cancelBtn} onPress={() => setIsEditingName(false)}>
+            <Ionicons name="close" size={18} color="#fff" />
+          </Pressable>
         </View>
-      ) : null}
+      ) : (
+        <View style={styles.nameRow}>
+          <Text style={styles.userName}>{userName}</Text>
+          <Pressable style={styles.editIcon} onPress={() => setIsEditingName(true)}>
+            <Ionicons name="create-outline" size={18} color={Colors.secondary} />
+          </Pressable>
+        </View>
+      )}
+      <Text style={styles.userIdText}>ID: {isPresentationMode ? '[Hidden in Presentation Mode]' : (userId || 'Local Offline Mode')}</Text>
+    </View>
+  );
 
+  const MainContent = (
+    <View style={styles.columnInner}>
       {/* STATS ROW */}
       <View style={styles.statsCard}>
         <View style={styles.statCol}>
@@ -557,7 +357,11 @@ export default function ProfileScreen() {
           </View>
         ))}
       </View>
+    </View>
+  );
 
+  const LeftContent = (
+    <View style={styles.columnInner}>
       {/* SETTINGS CARD */}
       <Text style={styles.sectionTitle}>Data Control & Settings</Text>
       <View style={styles.settingsCard}>
@@ -583,12 +387,12 @@ export default function ProfileScreen() {
         <Pressable
           style={styles.settingsRow}
           disabled={resyncing}
-          onPress={handlePrepopulate}
+          onPress={() => setShowSamplePicker(true)}
         >
           <Ionicons name="construct-outline" size={20} color={Colors.secondary} />
           <View style={styles.settingsText}>
             <Text style={styles.settingsTitle}>Pre-populate Sample Logs</Text>
-            <Text style={styles.settingsDesc}>Loads 10 mock entries with rich goals/exercise data.</Text>
+            <Text style={styles.settingsDesc}>Choose how many sample entries to load (3–20).</Text>
           </View>
           {resyncing ? (
             <ActivityIndicator color={Colors.secondary} size="small" />
@@ -623,56 +427,219 @@ export default function ProfileScreen() {
         </Pressable>
 
         {/* Clear Demo/Test Data */}
-        <Pressable style={[styles.settingsRow, { borderBottomWidth: 0 }]} onPress={handleClearDemoData}>
+        <Pressable style={[styles.settingsRow, { borderBottomWidth: 0 }]} onPress={handleClearDemoData} disabled={resyncing}>
           <Ionicons name="trash-outline" size={20} color={Colors.danger} />
           <View style={styles.settingsText}>
             <Text style={[styles.settingsTitle, { color: Colors.danger }]}>Clear Demo & Test Data</Text>
-            <Text style={styles.settingsDesc}>Resets all Neo4j nodes, logs, caches, and onboarding state.</Text>
+            <Text style={styles.settingsDesc}>Deletes all logged entries & graph data. Keeps your account.</Text>
           </View>
-          <Ionicons name="chevron-forward" size={16} color="#6b7280" />
+          {resyncing ? (
+            <ActivityIndicator color={Colors.danger} size="small" />
+          ) : (
+            <Ionicons name="chevron-forward" size={16} color="#6b7280" />
+          )}
         </Pressable>
       </View>
+    </View>
+  );
 
-      <Text style={styles.footer}>MindGraph Behavioral OS · Version 2.0.0</Text>
-    </ScrollView>
+  return (
+    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+      {toast ? (
+        <View style={[styles.toast, { backgroundColor: toast.startsWith('❌') ? Colors.danger : Colors.success }]}>
+          <Ionicons
+            name={toast.startsWith('❌') ? 'close-circle' : 'checkmark-circle'}
+            size={18}
+            color="#fff"
+            style={{ marginRight: 8 }}
+          />
+          <Text style={styles.toastText}>{toast}</Text>
+        </View>
+      ) : null}
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        {HeaderContent}
+
+        {isTablet ? (
+          <View style={styles.tabletLayout}>
+            <View style={styles.leftColumn}>{MainContent}</View>
+            <View style={styles.mainColumn}>{LeftContent}</View>
+          </View>
+        ) : (
+          <View style={styles.mobileLayout}>
+            {MainContent}
+            {LeftContent}
+          </View>
+        )}
+
+        <Text style={styles.footer}>MindGraph Behavioral OS · Version 2.0.0</Text>
+      </ScrollView>
+
+    {/* ── INLINE OVERLAY: Sample Count Picker ── */}
+    {showSamplePicker && (
+      <View style={styles.overlayBackdrop}>
+        <View style={styles.modalCard}>
+          <Text style={styles.modalTitle}>How many sample logs?</Text>
+          <Text style={styles.modalSubtitle}>Select 3 to 20 entries to pre-populate</Text>
+          <View style={styles.countGrid}>
+            {Array.from({ length: 18 }, (_, i) => i + 3).map((n) => (
+              <Pressable
+                key={n}
+                style={[styles.countBtn, sampleCount === n && styles.countBtnActive]}
+                onPress={() => setSampleCount(n)}
+              >
+                <Text style={[styles.countBtnText, sampleCount === n && styles.countBtnTextActive]}>
+                  {n}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <View style={styles.pickerNoteContainer}>
+            <Ionicons name="warning-outline" size={14} color="#fb923c" style={{ marginRight: 6 }} />
+            <Text style={styles.pickerNoteText}>
+              Options 1 and 2 are omitted because Insights and Graph view require at least 3 logs of history to function properly.
+            </Text>
+          </View>
+          <View style={styles.modalActions}>
+            <Pressable style={styles.modalCancelBtn} onPress={() => setShowSamplePicker(false)}>
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </Pressable>
+            <Pressable style={styles.modalConfirmBtn} onPress={() => handlePrepopulate(sampleCount)}>
+              <Ionicons name="construct-outline" size={16} color="#1a1a2e" style={{ marginRight: 6 }} />
+              <Text style={styles.modalConfirmText}>Load {sampleCount} Log{sampleCount > 1 ? 's' : ''}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    )}
+
+    {/* ── INLINE OVERLAY: Clear Demo Data Confirm ── */}
+    {showClearConfirm && (
+      <View style={styles.overlayBackdrop}>
+        <View style={styles.modalCard}>
+          <View style={{ alignItems: 'center', marginBottom: 12 }}>
+            <Ionicons name="trash-outline" size={36} color={Colors.danger} />
+          </View>
+          <Text style={styles.modalTitle}>Delete Demo & Test Data?</Text>
+          <Text style={[styles.modalSubtitle, { marginBottom: 24 }]}>
+            This will delete ALL your logged entries and Neo4j graph data. Your account name and settings are kept.
+          </Text>
+          <View style={styles.modalActions}>
+            <Pressable style={styles.modalCancelBtn} onPress={() => setShowClearConfirm(false)}>
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.modalConfirmBtn, { backgroundColor: Colors.danger }]}
+              onPress={performClearDemoData}
+            >
+              <Ionicons name="trash-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
+              <Text style={[styles.modalConfirmText, { color: '#fff' }]}>Delete Data</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    )}
+
+    {/* ── INLINE OVERLAY: Reset Cache / Logout Confirm ── */}
+    {showLogoutConfirm && (
+      <View style={styles.overlayBackdrop}>
+        <View style={styles.modalCard}>
+          <View style={{ alignItems: 'center', marginBottom: 12 }}>
+            <Ionicons name="warning-outline" size={36} color="#fb923c" />
+          </View>
+          <Text style={styles.modalTitle}>Delete Account?</Text>
+          <Text style={[styles.modalSubtitle, { marginBottom: 24 }]}>
+            This permanently deletes your account, all logs, and profile data. You will be taken back to onboarding. This cannot be undone.
+          </Text>
+          <View style={styles.modalActions}>
+            <Pressable style={styles.modalCancelBtn} onPress={() => setShowLogoutConfirm(false)}>
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.modalConfirmBtn, { backgroundColor: '#fb923c' }]}
+              onPress={performLogout}
+            >
+              <Ionicons name="log-out-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
+              <Text style={[styles.modalConfirmText, { color: '#fff' }]}>Delete Account</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    )}
+
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   content: {
-    padding: Spacing.three,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 48,
     alignItems: 'center',
-    maxWidth: Platform.OS === 'web' ? 580 : '100%',
+    maxWidth: Platform.OS === 'web' ? 1100 : '100%',
     alignSelf: 'center',
     width: '100%',
-    paddingBottom: 40,
+  },
+  tabletLayout: {
+    flexDirection: 'row',
+    alignSelf: 'stretch',
+    gap: 24,
+    width: '100%',
+    marginTop: 8,
+    alignItems: 'flex-start',
+  },
+  mobileLayout: {
+    flexDirection: 'column',
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+  leftColumn: {
+    flex: 1.1,
+    gap: 20,
+  },
+  mainColumn: {
+    flex: 1.2,
+    gap: 20,
+  },
+  columnInner: {
+    alignSelf: 'stretch',
+    gap: 20,
   },
   profileHeader: {
     alignItems: 'center',
-    marginTop: Spacing.three,
-    marginBottom: Spacing.three,
+    marginTop: 4,
+    marginBottom: 32,
+    paddingBottom: 24,
+    alignSelf: 'stretch',
+    borderBottomWidth: 1,
+    borderBottomColor: '#221e42',
+  },
+  avatarWrap: {
+    marginBottom: 14,
   },
   avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     backgroundColor: Colors.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
     shadowColor: Colors.secondary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 3,
+    borderColor: Colors.secondary + '55',
   },
-  avatarText: { fontSize: 28, fontWeight: 'bold', color: '#1a1a2e' },
+  avatarText: { fontSize: 32, fontWeight: '800', color: '#0a0820' },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
-  userName: { fontSize: 20, fontWeight: 'bold', color: Colors.text },
+  userName: { fontSize: 24, fontWeight: '800', color: Colors.text },
   editIcon: { padding: 4 },
   editNameRow: {
     flexDirection: 'row',
@@ -710,93 +677,123 @@ const styles = StyleSheet.create({
   userIdText: { fontSize: 11, color: Colors.textSecondary, marginTop: 4 },
   
   toast: {
-    borderRadius: 12, padding: 12, marginBottom: Spacing.two,
-    flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch',
+    position: 'absolute',
+    top: 24,
+    left: 24,
+    right: 24,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 99999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 10,
   },
   toastText: { color: '#fff', fontWeight: '700', fontSize: 13, flex: 1 },
 
   statsCard: {
     alignSelf: 'stretch',
     flexDirection: 'row',
-    backgroundColor: '#1f1a3a',
-    borderRadius: 16,
+    backgroundColor: '#13102a',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#2a2456',
-    paddingVertical: Spacing.three,
-    marginBottom: Spacing.four,
+    borderColor: '#221e42',
+    paddingVertical: 20,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
   },
   statCol: {
     flex: 1,
     alignItems: 'center',
+    gap: 6,
   },
-  statVal: { fontSize: 20, fontWeight: 'bold', color: Colors.text },
-  statLabel: { fontSize: 11, color: Colors.textSecondary, marginTop: 4 },
+  statVal: { fontSize: 22, fontWeight: '800', color: Colors.text },
+  statLabel: { fontSize: 12, color: Colors.textSecondary, marginTop: 2, fontWeight: '500' },
   statDivider: {
     width: 1,
     height: '60%',
-    backgroundColor: '#2a2456',
+    backgroundColor: '#221e42',
     alignSelf: 'center',
   },
 
   sectionTitle: {
     alignSelf: 'flex-start',
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.text,
-    marginBottom: Spacing.two,
+    fontSize: 13,
+    fontWeight: '800',
+    color: Colors.textSecondary,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   
   badgeGrid: {
     alignSelf: 'stretch',
-    gap: 10,
-    marginBottom: Spacing.four,
+    gap: 12,
+    marginBottom: 24,
   },
   badgeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1f1a3a',
-    borderRadius: 14,
+    backgroundColor: '#13102a',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#2a2456',
-    padding: 12,
-    gap: 12,
+    borderColor: '#221e42',
+    padding: 16,
+    gap: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 2,
   },
   badgeLocked: {
-    borderColor: '#221b44',
-    opacity: 0.6,
+    borderColor: '#1a1735',
+    opacity: 0.55,
   },
   badgeIconBg: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  badgeTitle: { fontSize: 13, fontWeight: 'bold', color: Colors.secondary },
-  badgeDesc: { fontSize: 11, color: Colors.textSecondary, marginTop: 2 },
+  badgeTitle: { fontSize: 14, fontWeight: '700', color: Colors.secondary },
+  badgeDesc: { fontSize: 12, color: Colors.textSecondary, marginTop: 3, lineHeight: 17 },
   
   settingsCard: {
     alignSelf: 'stretch',
-    backgroundColor: '#1f1a3a',
-    borderRadius: 16,
+    backgroundColor: '#13102a',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#2a2456',
-    paddingHorizontal: Spacing.three,
+    borderColor: '#221e42',
+    paddingHorizontal: 20,
     marginBottom: Spacing.three,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
   },
   settingsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2456',
+    borderBottomColor: '#1e1a38',
   },
   settingsText: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 14,
   },
-  settingsTitle: { fontSize: 13, fontWeight: 'bold', color: Colors.text },
-  settingsDesc: { fontSize: 11, color: Colors.textSecondary, marginTop: 2 },
+  settingsTitle: { fontSize: 14, fontWeight: '700', color: Colors.text },
+  settingsDesc: { fontSize: 12, color: Colors.textSecondary, marginTop: 3, lineHeight: 17 },
   
   footer: { fontSize: 10, color: '#374151', textAlign: 'center', marginTop: Spacing.two },
   badgeUnlockDate: {
@@ -822,7 +819,133 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#fff',
   },
-  toggleCircleActive: {
-    alignSelf: 'flex-end',
+    // Sample picker modal
+  overlayBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(9, 7, 20, 0.88)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(9, 7, 20, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  modalCard: {
+    backgroundColor: '#16122d',
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: '#372f60',
+    padding: 24,
+    width: Platform.OS === 'web' ? 420 : '90%',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.45,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.text,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  countGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  countBtn: {
+    width: 44,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#0c0a18',
+    borderWidth: 1,
+    borderColor: '#2a2456',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  countBtnActive: {
+    backgroundColor: Colors.secondary,
+    borderColor: Colors.secondary,
+  },
+  countBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  countBtnTextActive: {
+    color: '#090714',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#372f60',
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelText: {
+    color: Colors.textSecondary,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  modalConfirmBtn: {
+    flex: 2,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: Colors.secondary,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+  },
+  modalConfirmText: {
+    color: '#090714',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  pickerNoteContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(251, 146, 60, 0.08)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 146, 60, 0.25)',
+    padding: 12,
+    marginBottom: 24,
+  },
+  pickerNoteText: {
+    color: '#fb923c',
+    fontSize: 11,
+    lineHeight: 15,
+    flex: 1,
+    fontWeight: '600',
   },
 });

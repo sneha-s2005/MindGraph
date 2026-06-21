@@ -4,14 +4,15 @@ import {
   PanResponder, ActivityIndicator, Animated, ScrollView,
   useWindowDimensions, TextInput
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import Svg, { G, Line, Text as SvgText } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing } from '../constants/theme';
-import { getGraphData, logMood } from '../services/api';
-import { getEntries, MoodEntry, saveEntry } from '../utils/storage';
+import { getGraphData } from '../services/api';
+import { getEntries, MoodEntry } from '../utils/storage';
+import { seedSampleLogs } from '../utils/sampleData';
 
 interface GraphNode {
   id: string;
@@ -32,7 +33,12 @@ interface GraphLink {
   label: string;
 }
 
-const HEIGHT = 460;
+const HEIGHT = 580;
+
+const toSafeNumber = (val: any, fallback: number): number => {
+  const num = Number(val);
+  return isNaN(num) || !isFinite(num) ? fallback : num;
+};
 
 // Helper: Build local graph structure from AsyncStorage entries
 const buildLocalGraph = (entries: MoodEntry[], userId: string) => {
@@ -255,27 +261,27 @@ const buildLocalGraph = (entries: MoodEntry[], userId: string) => {
   };
 };
 
-// Helper: Basic Force-Directed Placement Algorithm
+// Helper: Basic Force-Directed Placement Algorithm (Numerically Stable & Spread Out)
 function runForceSimulation(simNodes: GraphNode[], simLinks: GraphLink[], width: number, height: number) {
   if (simNodes.length === 0) return;
 
   const safeWidth = width > 0 ? width : 320;
-  const safeHeight = height > 0 ? height : 460;
+  const safeHeight = height > 0 ? height : 580;
 
-  // Place initially in a circle around center
+  // Place initially in a circle around center to avoid overlap starting states
   simNodes.forEach((node, i) => {
     const angle = (i / simNodes.length) * 2 * Math.PI;
-    node.x = safeWidth / 2 + 100 * Math.cos(angle);
-    node.y = safeHeight / 2 + 100 * Math.sin(angle);
+    node.x = safeWidth / 2 + 120 * Math.cos(angle);
+    node.y = safeHeight / 2 + 120 * Math.sin(angle);
     node.vx = 0;
     node.vy = 0;
   });
 
-  const iterations = 80;
-  const k = Math.max(1, Math.sqrt((safeWidth * safeHeight) / simNodes.length) * 0.4);
+  const iterations = 85;
+  const k = Math.max(1, Math.sqrt((safeWidth * safeHeight) / simNodes.length) * 0.28);
 
   for (let iter = 0; iter < iterations; iter++) {
-    // 1. Repulsion force between nodes
+    // 1. Repulsion force between all nodes (forces nodes to spread out and prevents overlap)
     for (let i = 0; i < simNodes.length; i++) {
       for (let j = i + 1; j < simNodes.length; j++) {
         const n1 = simNodes[i];
@@ -283,19 +289,22 @@ function runForceSimulation(simNodes: GraphNode[], simLinks: GraphLink[], width:
         const dx = n2.x - n1.x;
         const dy = n2.y - n1.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        if (dist < 180) {
-          const force = (k * k) / dist;
-          const fx = (dx / dist) * force * 0.12;
-          const fy = (dy / dist) * force * 0.12;
-          n1.vx = (n1.vx || 0) - fx;
-          n1.vy = (n1.vy || 0) - fy;
-          n2.vx = (n2.vx || 0) + fx;
-          n2.vy = (n2.vy || 0) + fy;
-        }
+        
+        // Repulsion force model
+        const force = (k * k) / dist;
+        const cappedForce = Math.min(force, 15);
+        const fx = (dx / dist) * cappedForce * 0.04;
+        const fy = (dy / dist) * cappedForce * 0.04;
+        
+        n1.vx = (n1.vx || 0) - fx;
+        n1.vy = (n1.vy || 0) - fy;
+        n2.vx = (n2.vx || 0) + fx;
+        n2.vy = (n2.vy || 0) + fy;
       }
     }
 
-    // 2. Attraction force along links
+    // 2. Double-acting spring attraction/repulsion along links (keeps ideal 95px distance)
+    const restLength = 95;
     simLinks.forEach((link) => {
       const sourceNode = simNodes.find((n) => n.id === link.source);
       const targetNode = simNodes.find((n) => n.id === link.target);
@@ -303,9 +312,14 @@ function runForceSimulation(simNodes: GraphNode[], simLinks: GraphLink[], width:
         const dx = targetNode.x - sourceNode.x;
         const dy = targetNode.y - sourceNode.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        const force = (dist * dist) / k;
-        const fx = (dx / dist) * force * 0.06;
-        const fy = (dy / dist) * force * 0.06;
+        
+        // Hooke's Law: force is proportional to displacement from rest length
+        const displacement = dist - restLength;
+        const springForce = displacement * 0.085; // Spring constant
+        
+        const fx = (dx / dist) * springForce;
+        const fy = (dy / dist) * springForce;
+        
         sourceNode.vx = (sourceNode.vx || 0) + fx;
         sourceNode.vy = (sourceNode.vy || 0) + fy;
         targetNode.vx = (targetNode.vx || 0) - fx;
@@ -317,8 +331,8 @@ function runForceSimulation(simNodes: GraphNode[], simLinks: GraphLink[], width:
     simNodes.forEach((node) => {
       const dx = safeWidth / 2 - node.x;
       const dy = safeHeight / 2 - node.y;
-      node.vx = (node.vx || 0) + dx * 0.015;
-      node.vy = (node.vy || 0) + dy * 0.015;
+      node.vx = (node.vx || 0) + dx * 0.055;
+      node.vy = (node.vy || 0) + dy * 0.055;
 
       // Apply drag and update positions with safety checks
       if (!isNaN(node.vx) && isFinite(node.vx)) {
@@ -327,8 +341,12 @@ function runForceSimulation(simNodes: GraphNode[], simLinks: GraphLink[], width:
       if (!isNaN(node.vy) && isFinite(node.vy)) {
         node.y += node.vy;
       }
-      node.vx *= 0.6;
-      node.vy *= 0.6;
+      node.vx *= 0.55;
+      node.vy *= 0.55;
+
+      // Constrain nodes to stay inside the canvas boundary
+      node.x = Math.max(30, Math.min(safeWidth - 30, node.x));
+      node.y = Math.max(30, Math.min(safeHeight - 30, node.y));
 
       // Fallback coordinate checks to prevent NaN leaks
       if (isNaN(node.x) || !isFinite(node.x)) node.x = safeWidth / 2;
@@ -339,11 +357,21 @@ function runForceSimulation(simNodes: GraphNode[], simLinks: GraphLink[], width:
 
 export default function GraphViewScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
-  const canvasWidth = Math.max(320, Platform.OS === 'web' ? Math.min(580, width || 320) : (width || 320));
+  const { width: windowWidth } = useWindowDimensions();
+  const safeWidthDimension = typeof windowWidth === 'number' && windowWidth > 0 ? windowWidth : 320;
+  const isTablet = safeWidthDimension >= 768;
+  const canvasWidth = Math.max(
+    320,
+    Platform.OS === 'web'
+      ? isTablet
+        ? Math.min(850, safeWidthDimension * 0.62)
+        : Math.min(580, safeWidthDimension)
+      : safeWidthDimension
+  );
   const [nodes, setNodes] = useState<GraphNode[]>([]);
   const [links, setLinks] = useState<GraphLink[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isPresentationMode, setIsPresentationMode] = useState(false);
   const [entriesCount, setEntriesCount] = useState(0);
@@ -365,6 +393,8 @@ export default function GraphViewScreen() {
   const dragNodeStartPosRef = useRef({ x: 0, y: 0 });
 
   const [panResponder, setPanResponder] = useState<any>(null);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [showAllLabels, setShowAllLabels] = useState(false);
 
 
   const fetchGraph = useCallback(async () => {
@@ -442,196 +472,8 @@ export default function GraphViewScreen() {
   const handlePrepopulate = async () => {
     setLoading(true);
     try {
-      const storedId = await AsyncStorage.getItem('@mindgraph_userId');
-      const storedName = await AsyncStorage.getItem('@mindgraph_userName');
-      const userId = storedId || '';
-      const userName = storedName || 'Friend';
-
-      const mockEntries = [
-        {
-          date: getPastDateString(9),
-          mood: 6,
-          energy: 'Medium' as const,
-          sleepHours: 7.6,
-          exerciseDuration: 0,
-          studyHours: 1.0,
-          workHours: 4.5,
-          socialInteraction: 'Co-workers',
-          stressLevel: 'Medium' as const,
-          goalTitle: 'Setup Project',
-          activityName: 'Coding',
-          habits: { sleep: true, exercise: false, meditation: false, deepWork: true },
-          notes: 'Started the project. Good initial progress.',
-        },
-        {
-          date: getPastDateString(8),
-          mood: 5,
-          energy: 'Low' as const,
-          sleepHours: 5.8,
-          exerciseDuration: 0,
-          studyHours: 0.5,
-          workHours: 6.0,
-          socialInteraction: 'Roommate',
-          stressLevel: 'High' as const,
-          goalTitle: 'API connection',
-          activityName: 'Research',
-          habits: { sleep: false, exercise: false, meditation: false, deepWork: false },
-          notes: 'Struggling with database setup. Felt pretty tired today.',
-        },
-        {
-          date: getPastDateString(7),
-          mood: 7,
-          energy: 'Medium' as const,
-          sleepHours: 7.5,
-          exerciseDuration: 20,
-          studyHours: 1.5,
-          workHours: 5.0,
-          socialInteraction: 'Mentor Mark',
-          stressLevel: 'Medium' as const,
-          goalTitle: 'Database Schema',
-          activityName: 'Walking',
-          habits: { sleep: true, exercise: true, meditation: false, deepWork: true },
-          notes: 'Good session with Mentor Mark. Helped clarify the schema design.',
-        },
-        {
-          date: getPastDateString(6),
-          mood: 6,
-          energy: 'Medium' as const,
-          sleepHours: 7.8,
-          exerciseDuration: 0,
-          studyHours: 2.0,
-          workHours: 5.5,
-          socialInteraction: 'Design Team',
-          stressLevel: 'Medium' as const,
-          goalTitle: 'UI Prototypes',
-          activityName: 'Reading',
-          habits: { sleep: true, exercise: false, meditation: true, deepWork: true },
-          notes: 'Refining the visual styles. Decent focus blocks.',
-        },
-        {
-          date: getPastDateString(5),
-          mood: 8,
-          energy: 'High' as const,
-          sleepHours: 8.0,
-          exerciseDuration: 30,
-          studyHours: 2.0,
-          workHours: 4.0,
-          socialInteraction: 'Family',
-          stressLevel: 'Low' as const,
-          goalTitle: 'Component library',
-          activityName: 'Gym Workout',
-          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
-          notes: 'Gym workout really boosted my energy today. Slept great!',
-        },
-        {
-          date: getPastDateString(4),
-          mood: 9,
-          energy: 'High' as const,
-          sleepHours: 8.2,
-          exerciseDuration: 45,
-          studyHours: 1.0,
-          workHours: 5.0,
-          socialInteraction: 'Friends',
-          stressLevel: 'Low' as const,
-          goalTitle: 'State management',
-          activityName: 'Cycling',
-          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
-          notes: 'Went cycling. Clear head, great flow state in code.',
-        },
-        {
-          date: getPastDateString(3),
-          mood: 7,
-          energy: 'Medium' as const,
-          sleepHours: 7.5,
-          exerciseDuration: 0,
-          studyHours: 3.0,
-          workHours: 6.0,
-          socialInteraction: 'Study Group',
-          stressLevel: 'Medium' as const,
-          goalTitle: 'Backend integration',
-          activityName: 'Reading',
-          habits: { sleep: true, exercise: false, meditation: false, deepWork: true },
-          notes: 'Worked in a group study session. Productive but a bit noisy.',
-        },
-        {
-          date: getPastDateString(2),
-          mood: 8,
-          energy: 'High' as const,
-          sleepHours: 7.8,
-          exerciseDuration: 30,
-          studyHours: 1.5,
-          workHours: 5.0,
-          socialInteraction: 'Mentor Mark',
-          stressLevel: 'Low' as const,
-          goalTitle: 'Interactive Graph',
-          activityName: 'Gym Workout',
-          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
-          notes: 'Implemented node drag force-directed simulation. Very satisfying!',
-        },
-        {
-          date: getPastDateString(1),
-          mood: 7,
-          energy: 'Medium' as const,
-          sleepHours: 7.0,
-          exerciseDuration: 20,
-          studyHours: 2.0,
-          workHours: 5.5,
-          socialInteraction: 'Co-workers',
-          stressLevel: 'Medium' as const,
-          goalTitle: 'Insights screen',
-          activityName: 'Walking',
-          habits: { sleep: true, exercise: true, meditation: false, deepWork: true },
-          notes: 'Walking during lunch helped clear developer fatigue.',
-        },
-        {
-          date: getPastDateString(0),
-          mood: 8,
-          energy: 'High' as const,
-          sleepHours: 8.0,
-          exerciseDuration: 30,
-          studyHours: 1.0,
-          workHours: 4.5,
-          socialInteraction: 'Mentor Mark',
-          stressLevel: 'Low' as const,
-          goalTitle: 'Polish UI Details',
-          activityName: 'Yoga',
-          habits: { sleep: true, exercise: true, meditation: true, deepWork: true },
-          notes: 'Pre-populated data is now working. Yoga in the morning made me feel very balanced.',
-        },
-      ];
-
-      // Save entries locally
-      for (const entry of mockEntries) {
-        await saveEntry(entry);
-      }
-
-      // If user is registered on Neo4j, attempt backend sync
-      if (userId && !userId.startsWith('local_')) {
-        for (const entry of mockEntries) {
-          try {
-            await logMood({
-              userId,
-              userName,
-              score: entry.mood,
-              energyLevel: entry.energy,
-              sleepHours: entry.sleepHours,
-              exerciseDuration: entry.exerciseDuration,
-              studyHours: entry.studyHours,
-              workHours: entry.workHours,
-              socialInteraction: entry.socialInteraction,
-              stressLevel: entry.stressLevel,
-              goalTitle: entry.goalTitle,
-              activityName: entry.activityName,
-              notes: entry.notes,
-              habits: entry.habits,
-            });
-          } catch (syncErr) {
-            console.warn('Sync failed for graph prepopulate item:', entry.date, syncErr);
-          }
-        }
-      }
-
-      showToast('✅ Seeded 10 rich mock entries!');
+      await seedSampleLogs(10);
+      showToast('✅ 10 sample logs loaded! Graph is rebuilding...');
       setReloadTrigger((prev) => prev + 1);
     } catch (err) {
       console.error(err);
@@ -640,23 +482,18 @@ export default function GraphViewScreen() {
     }
   };
 
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      await Promise.resolve();
-      if (active) {
-        fetchGraph();
-      }
-    };
-    load();
-    return () => {
-      active = false;
-    };
-  }, [reloadTrigger, fetchGraph]);
 
-  const latestRef = useRef({ nodes, zoom, panX, panY, canvasWidth });
+
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchGraph();
+    }, [reloadTrigger, fetchGraph])
+  );
+
+  const latestRef = useRef({ nodes, links, zoom, panX, panY, canvasWidth });
   useEffect(() => {
-    latestRef.current = { nodes, zoom, panX, panY, canvasWidth };
+    latestRef.current = { nodes, links, zoom, panX, panY, canvasWidth };
   });
 
   useEffect(() => {
@@ -664,6 +501,7 @@ export default function GraphViewScreen() {
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onPanResponderGrant: (evt, gestureState) => {
+          setScrollEnabled(false);
           const { panX: px, panY: py, zoom: z, nodes: nds } = latestRef.current;
           // Use locationX/Y relative to canvas wrapper (children have pointerEvents="none")
           const touchX = (evt.nativeEvent.locationX - px) / z;
@@ -724,27 +562,62 @@ export default function GraphViewScreen() {
         },
         onPanResponderRelease: () => {
           dragNodeIdRef.current = null;
+          setScrollEnabled(true);
+        },
+        onPanResponderTerminate: () => {
+          dragNodeIdRef.current = null;
+          setScrollEnabled(true);
         },
       })
     );
   }, []);
 
   // Zoom controls
-  const handleZoomIn = () => setZoom((z) => Math.min(z + 0.2, 2.5));
-  const handleZoomOut = () => setZoom((z) => Math.max(z - 0.2, 0.5));
+  const handleZoomIn = () => {
+    setZoom((z) => {
+      const nextZ = Math.min(z + 0.2, 2.5);
+      showToast(`✅ Zoomed in: ${Math.round(nextZ * 100)}%`);
+      return nextZ;
+    });
+  };
+  const handleZoomOut = () => {
+    setZoom((z) => {
+      const nextZ = Math.max(z - 0.2, 0.5);
+      showToast(`✅ Zoomed out: ${Math.round(nextZ * 100)}%`);
+      return nextZ;
+    });
+  };
   const handleReset = () => {
     setZoom(1);
     setPanX(0);
     setPanY(0);
     setSelectedNodeId(null);
+    showToast('✅ Graph view reset!');
   };
+
+  // Automatically reset zoom and pan on canvas resize to re-center the graph
+  useEffect(() => {
+    setZoom(1);
+    setPanX(0);
+    setPanY(0);
+    const { nodes: currentNodes, links: currentLinks } = latestRef.current;
+    if (currentNodes && currentNodes.length > 0) {
+      setNodes(() => {
+        const updatedNodes = currentNodes.map((n) => ({ ...n }));
+        runForceSimulation(updatedNodes, currentLinks, canvasWidth, HEIGHT);
+        return updatedNodes;
+      });
+    }
+  }, [canvasWidth]);
 
   const handleSelectSearchedNode = (node: GraphNode) => {
     setSelectedNodeId(node.id);
     setSearchQuery('');
     setZoom(1.2);
-    setPanX(canvasWidth / 2 - node.x * 1.2);
-    setPanY(HEIGHT / 2 - node.y * 1.2);
+    const safeNodeX = toSafeNumber(node.x, canvasWidth / 2);
+    const safeNodeY = toSafeNumber(node.y, HEIGHT / 2);
+    setPanX(canvasWidth / 2 - safeNodeX * 1.2);
+    setPanY(HEIGHT / 2 - safeNodeY * 1.2);
     if (Platform.OS !== 'web') Haptics.selectionAsync();
   };
 
@@ -893,15 +766,13 @@ export default function GraphViewScreen() {
   };
 
   const formatPath = (rawPath: string) => {
-    if (!isPresentationMode) return rawPath;
     try {
-      const parts = rawPath.match(/label:\s*"([^"]+)"\}\)-\[:([^\]]+)\]->\(:[A-Za-z]+\s*\{label:\s*"([^"]+)"\}/);
-      if (parts && parts.length === 3) {
-        return `${parts[1]} ➔ ${parts[2].replace(/_/g, ' ')} ➔ ${parts[3]}`;
-      }
-      const partsAlt = rawPath.match(/label:\s*"([^"]+)"[^{}]*-\[:([^\]]+)\]->[^{}]*label:\s*"([^"]+)"/);
-      if (partsAlt && partsAlt.length === 4) {
-        return `${partsAlt[1]} ➔ ${partsAlt[2].replace(/_/g, ' ')} ➔ ${partsAlt[3]}`;
+      const match = rawPath.match(/label:\s*"([^"]+)"[^{}]*-\[:([^\]]+)\]->[^{}]*label:\s*"([^"]+)"/);
+      if (match) {
+        const [, label1, rel, label2] = match;
+        const cleanRel = rel.replace(/_/g, ' ').toLowerCase();
+        const capitalizedRel = cleanRel.charAt(0).toUpperCase() + cleanRel.slice(1);
+        return `${label1} ➔ ${capitalizedRel} ➔ ${label2}`;
       }
     } catch {}
     return rawPath;
@@ -914,27 +785,204 @@ export default function GraphViewScreen() {
   }
 
   const getLegendItems = () => [
-    { type: 'User', label: 'User', color: '#7c3aed' },
     { type: 'Mood', label: 'Mood', color: '#14b8a6' },
     { type: 'Sleep', label: 'Sleep', color: '#3b82f6' },
-    { type: 'Productivity', label: 'Productivity', color: '#84cc16' },
+    { type: 'Exercise', label: 'Exercise', color: '#10b981' },
+    { type: 'Study', label: 'Study', color: '#eab308' },
+    { type: 'Work', label: 'Work', color: '#f97316' },
     { type: 'Habit', label: 'Habit', color: '#a855f7' },
-    { type: 'BurnoutRisk', label: 'Burnout', color: '#ef4444' },
+    { type: 'Person', label: 'Person', color: '#ec4899' },
+    { type: 'Goal', label: 'Goal', color: '#06b6d4' },
+    { type: 'Activity', label: 'Activity', color: '#f43f5e' },
+    { type: 'BurnoutRisk', label: 'Burnout Risk', color: '#ef4444' },
+    { type: 'Productivity', label: 'Productivity', color: '#84cc16' },
   ];
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Interactive Behavioral Graph</Text>
-        <Text style={styles.subText}>Drag nodes, zoom, and tap to filter correlations.</Text>
-      </View>
+  const HeaderContent = (
+    <View style={styles.header}>
+      <Text style={styles.title}>Interactive Behavioral Graph</Text>
+      <Text style={styles.subText}>Drag nodes, zoom, and tap to filter correlations.</Text>
+    </View>
+  );
 
-      {toast ? (
-        <View style={[styles.toast, { backgroundColor: toast.startsWith('✅') ? Colors.success : Colors.danger }]}>
-          <Text style={styles.toastText}>{toast}</Text>
+  const MainContent = (
+    <View style={styles.columnInner}>
+      {/* Control Tools */}
+      {entriesCount >= 3 && nodes.length > 1 && (
+        <View style={styles.toolsContainer}>
+          <Pressable 
+            style={styles.toolBtn} 
+            onPress={() => {
+              if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              const nextVal = !showAllLabels;
+              setShowAllLabels(nextVal);
+              showToast(nextVal ? "✅ Node labels shown" : "✅ Node labels hidden");
+            }}
+          >
+            <Ionicons name={showAllLabels ? "eye-outline" : "eye-off-outline"} size={16} color={showAllLabels ? Colors.secondary : "#8b8b9e"} />
+          </Pressable>
+          <Pressable style={styles.toolBtn} onPress={handleZoomIn}>
+            <Ionicons name="add" size={18} color="#fff" />
+          </Pressable>
+          <Pressable style={styles.toolBtn} onPress={handleZoomOut}>
+            <Ionicons name="remove" size={18} color="#fff" />
+          </Pressable>
+          <Pressable style={[styles.toolBtn, { width: 54 }]} onPress={handleReset}>
+            <Text style={styles.toolBtnText}>Reset</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.toolBtn, { width: 54 }]}
+            onPress={async () => {
+              if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              await fetchGraph();
+              showToast('✅ Graph reloaded successfully!');
+            }}
+          >
+            <Ionicons name="refresh" size={16} color="#fff" />
+          </Pressable>
         </View>
-      ) : null}
+      )}
 
+      {/* Graph Area */}
+      <View style={styles.canvasContainer} {...(panResponder ? panResponder.panHandlers : {})}>
+        {loading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator color={Colors.secondary} size="large" />
+            <Text style={styles.loadingText}>Assembling graph relations from Neo4j...</Text>
+          </View>
+        ) : (entriesCount < 3 || nodes.length <= 1) ? (
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyGraphic}>
+              <Ionicons name="git-network-outline" size={48} color={Colors.secondary} />
+            </View>
+            <Text style={styles.emptyTitle}>Your behavioral graph is waiting to be discovered.</Text>
+            <Text style={styles.emptyText}>
+              Log at least 3 days of activity to unlock relationship intelligence.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <Pressable
+                style={({ pressed }) => [styles.emptyLogBtn, pressed && { opacity: 0.85 }]}
+                onPress={() => router.push('/log')}
+              >
+                <Ionicons name="create-outline" size={16} color="#1a1a2e" style={{ marginRight: 6 }} />
+                <Text style={styles.emptyLogBtnText}>Start Logging</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <View style={{ width: canvasWidth, height: HEIGHT, position: 'relative', alignSelf: 'center' }}>
+            {(() => {
+              const safePanX = toSafeNumber(panX, 0);
+              const safePanY = toSafeNumber(panY, 0);
+              const safeZoom = toSafeNumber(zoom, 1);
+              const halfWidth = canvasWidth / 2;
+              const halfHeight = HEIGHT / 2;
+
+              return (
+                <>
+                  <Svg width={canvasWidth} height={HEIGHT} style={styles.svg} pointerEvents="none">
+                    <G transform={`translate(${safePanX.toFixed(2)}, ${safePanY.toFixed(2)}) scale(${safeZoom.toFixed(2)})`}>
+                      {links.map((link) => {
+                        const s = nodes.find((n) => n.id === link.source);
+                        const t = nodes.find((n) => n.id === link.target);
+                        if (!s || !t) return null;
+
+                        const sX = toSafeNumber(s.x, halfWidth);
+                        const sY = toSafeNumber(s.y, halfHeight);
+                        const tX = toSafeNumber(t.x, halfWidth);
+                        const tY = toSafeNumber(t.y, halfHeight);
+
+                        const isHighlighted = !isFilterActive || highlightedLinkIds.has(link.id);
+                        const opacity = isHighlighted ? 0.85 : 0.12;
+                        const strokeColor = isHighlighted ? Colors.secondary : '#4b5563';
+
+                        return (
+                          <Line
+                            key={link.id}
+                            x1={sX}
+                            y1={sY}
+                            x2={tX}
+                            y2={tY}
+                            stroke={strokeColor}
+                            strokeWidth={isHighlighted ? 2.5 : 1}
+                            opacity={opacity}
+                          />
+                        );
+                      })}
+                    </G>
+                  </Svg>
+
+                  <View
+                    style={{ position: 'absolute', left: 0, top: 0, width: canvasWidth, height: HEIGHT }}
+                    pointerEvents="none"
+                  >
+                    <View
+                      style={{
+                        transform: [
+                          { translateX: safePanX },
+                          { translateY: safePanY },
+                          { scale: safeZoom }
+                        ],
+                        // @ts-ignore
+                        transformOrigin: 'top left',
+                        position: 'absolute',
+                        width: canvasWidth,
+                        height: HEIGHT,
+                      }}
+                    >
+                      {nodes.map((node) => {
+                        const isHighlighted = !isFilterActive || highlightedNodeIds.has(node.id);
+                        const opacity = isHighlighted ? 1 : 0.22;
+                        const isSelected = selectedNodeId === node.id;
+                        const size = node.size || 16;
+                        const nodeX = toSafeNumber(node.x, halfWidth);
+                        const nodeY = toSafeNumber(node.y, halfHeight);
+
+                        return (
+                          <View
+                            key={node.id}
+                            style={[
+                              styles.nodeView,
+                              {
+                                left: nodeX - size,
+                                top: nodeY - size,
+                                width: size * 2,
+                                height: size * 2,
+                                borderRadius: size,
+                                backgroundColor: node.color || '#6b7280',
+                                opacity: opacity,
+                                borderWidth: isSelected ? 2.5 : 1.5,
+                                borderColor: isSelected ? '#ffffff' : 'rgba(26, 21, 58, 0.6)',
+                                transform: [{ scale: isSelected ? 1.15 : 1 }]
+                              }
+                            ]}
+                          >
+                            <Ionicons
+                              name={getNodeIcon(node.type) as any}
+                              size={Math.max(12, size * 0.95)}
+                              color="#1a1a2e"
+                            />
+                            {isHighlighted && (showAllLabels || isSelected || node.type === 'User') && (
+                              <View style={[styles.nodeLabelContainer, { top: size * 2 + 3 }]}>
+                                <Text style={styles.nodeLabelText} numberOfLines={1}>{node.label}</Text>
+                              </View>
+                            )}
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                </>
+              );
+            })()}
+          </View>
+        )}
+      </View>
+    </View>
+  );
+
+  const LeftContent = (
+    <View style={styles.columnInner}>
       {/* Node Search Bar */}
       {entriesCount >= 3 && nodes.length > 1 && (
         <View style={styles.searchContainer}>
@@ -978,310 +1026,124 @@ export default function GraphViewScreen() {
       )}
 
       {/* Legend board */}
-      <View style={styles.legendRow}>
-        {getLegendItems().map((item) => {
-          const isActive = selectedTypeFilter === item.type;
-          return (
-            <Pressable
-              key={item.type}
-              style={[
-                styles.legendItem,
-                isActive && { backgroundColor: item.color + '25', borderColor: item.color, borderWidth: 1, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }
-              ]}
-              onPress={() => {
-                if (Platform.OS !== 'web') Haptics.selectionAsync();
-                setSelectedTypeFilter(isActive ? null : item.type);
-                setSelectedNodeId(null); // Clear selected node if switching filters
-              }}
-            >
-              <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-              <Text style={[styles.legendText, isActive && { color: '#ffffff', fontWeight: 'bold' }]}>{item.label}</Text>
-            </Pressable>
-          );
-        })}
+      <View style={styles.legendCard}>
+        <Text style={styles.legendCardTitle}>Filter Categories</Text>
+        <View style={styles.legendGrid}>
+          {getLegendItems().map((item) => {
+            const isActive = selectedTypeFilter === item.type;
+            return (
+              <Pressable
+                key={item.type}
+                style={[
+                  styles.legendItem,
+                  isActive && { backgroundColor: item.color + '25', borderColor: item.color, borderWidth: 1, borderRadius: 8 }
+                ]}
+                onPress={() => {
+                  if (Platform.OS !== 'web') Haptics.selectionAsync();
+                  setSelectedTypeFilter(isActive ? null : item.type);
+                  setSelectedNodeId(null);
+                }}
+              >
+                <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+                <Text style={[styles.legendText, isActive && { color: '#ffffff', fontWeight: 'bold' }]}>{item.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
-      {/* Graph Area */}
-      <View style={styles.canvasContainer} {...(panResponder ? panResponder.panHandlers : {})}>
-        {loading ? (
-          <View style={styles.loadingWrap}>
-            <ActivityIndicator color={Colors.secondary} size="large" />
-            <Text style={styles.loadingText}>Assembling graph relations from Neo4j...</Text>
+      {/* Selected Node Details inline/floating sheet */}
+      {selectedNode ? (
+        <View style={styles.detailsCard}>
+          <View style={styles.panelHeader}>
+            <Text style={styles.panelTitle} numberOfLines={1}>{selectedNode.label}</Text>
+            <Pressable onPress={() => setSelectedNodeId(null)} style={styles.panelCloseBtn}>
+              <Ionicons name="close" size={18} color="#fff" />
+            </Pressable>
           </View>
-        ) : (entriesCount < 3 || nodes.length <= 1) ? (
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyGraphic}>
-              <Ionicons name="git-network-outline" size={48} color={Colors.secondary} />
-            </View>
-            <Text style={styles.emptyTitle}>Your behavioral graph is waiting to be discovered.</Text>
-            <Text style={styles.emptyText}>
-              Log at least 3 days of activity to unlock relationship intelligence.
+
+          <View style={styles.panelField}>
+            <Text style={styles.panelFieldLbl}>Node Type</Text>
+            <Text style={[styles.panelFieldVal, { color: selectedNode.color, fontWeight: '700' }]}>
+              {selectedNode.type}
             </Text>
-            <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-              <Pressable
-                style={({ pressed }) => [styles.emptyLogBtn, pressed && { opacity: 0.85 }]}
-                onPress={() => router.push('/log')}
-              >
-                <Ionicons name="create-outline" size={16} color="#1a1a2e" style={{ marginRight: 6 }} />
-                <Text style={styles.emptyLogBtnText}>Start Logging</Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [styles.emptyLogBtn, pressed && { opacity: 0.85 }, { backgroundColor: Colors.primary }]}
-                onPress={handlePrepopulate}
-              >
-                <Ionicons name="construct-outline" size={16} color="#ffffff" style={{ marginRight: 6 }} />
-                <Text style={[styles.emptyLogBtnText, { color: '#ffffff' }]}>Pre-populate Logs</Text>
-              </Pressable>
-            </View>
           </View>
-        ) : (
-          <View style={{ width: canvasWidth, height: HEIGHT, position: 'relative' }}>
-            {(() => {
-              const safePanX = isNaN(panX) || !isFinite(panX) ? 0 : panX;
-              const safePanY = isNaN(panY) || !isFinite(panY) ? 0 : panY;
-              const safeZoom = isNaN(zoom) || !isFinite(zoom) ? 1 : zoom;
-              const halfWidth = canvasWidth / 2;
-              const halfHeight = HEIGHT / 2;
 
-              return (
-                <>
-                  <Svg width={canvasWidth} height={HEIGHT} style={styles.svg} pointerEvents="none">
-                    {/* Viewport transformation group for links */}
-                    <G transform={`translate(${safePanX} ${safePanY}) scale(${safeZoom})`}>
-                      {links.map((link) => {
-                        const s = nodes.find((n) => n.id === link.source);
-                        const t = nodes.find((n) => n.id === link.target);
-                        if (!s || !t) return null;
-
-                        const sX = isNaN(s.x) || !isFinite(s.x) ? halfWidth : s.x;
-                        const sY = isNaN(s.y) || !isFinite(s.y) ? halfHeight : s.y;
-                        const tX = isNaN(t.x) || !isFinite(t.x) ? halfWidth : t.x;
-                        const tY = isNaN(t.y) || !isFinite(t.y) ? halfHeight : t.y;
-
-                        const isHighlighted = !isFilterActive || highlightedLinkIds.has(link.id);
-                        const opacity = isHighlighted ? 0.85 : 0.12;
-                        const strokeColor = isHighlighted ? Colors.secondary : '#4b5563';
-
-                        const midX = (sX + tX) / 2;
-                        const midY = (sY + tY) / 2;
-                        let angle = Math.atan2(tY - sY, tX - sX) * (180 / Math.PI);
-                        if (angle > 90 || angle < -90) {
-                          angle = angle + 180;
-                        }
-                        const safeAngle = isNaN(angle) || !isFinite(angle) ? 0 : angle;
-
-                        return (
-                          <G key={link.id}>
-                            <Line
-                              x1={sX}
-                              y1={sY}
-                              x2={tX}
-                              y2={tY}
-                              stroke={strokeColor}
-                              strokeWidth={isHighlighted ? 2.5 : 1}
-                              opacity={opacity}
-                            />
-                            {isHighlighted && selectedNodeId !== null && (
-                              <SvgText
-                                x={midX}
-                                y={midY - 4}
-                                fill={Colors.secondary}
-                                fontSize="8"
-                                fontWeight="bold"
-                                textAnchor="middle"
-                                opacity={0.9}
-                                transform={`translate(${midX} ${midY}) rotate(${safeAngle}) translate(${-midX} ${-midY})`}
-                              >
-                                {link.label}
-                              </SvgText>
-                            )}
-                          </G>
-                        );
-                      })}
-                    </G>
-                  </Svg>
-
-                  {/* Absolute container for Node views */}
-                  <View
-                    style={{
-                      position: 'absolute',
-                      left: 0,
-                      top: 0,
-                      width: canvasWidth,
-                      height: HEIGHT,
-                    }}
-                    pointerEvents="none"
-                  >
-                    <View
-                      style={{
-                        transform: [
-                          { translateX: safePanX },
-                          { translateY: safePanY },
-                          { scale: safeZoom }
-                        ],
-                        position: 'absolute',
-                        width: canvasWidth,
-                        height: HEIGHT,
-                      }}
-                    >
-                      {nodes.map((node) => {
-                        const isHighlighted = !isFilterActive || highlightedNodeIds.has(node.id);
-                        const opacity = isHighlighted ? 1 : 0.22;
-                        const isSelected = selectedNodeId === node.id;
-                        const size = node.size || 16;
-
-                        const nodeX = isNaN(node.x) || !isFinite(node.x) ? halfWidth : node.x;
-                        const nodeY = isNaN(node.y) || !isFinite(node.y) ? halfHeight : node.y;
-
-                        return (
-                          <View
-                            key={node.id}
-                            style={[
-                              styles.nodeView,
-                              {
-                                left: nodeX - size,
-                                top: nodeY - size,
-                                width: size * 2,
-                                height: size * 2,
-                                borderRadius: size,
-                                backgroundColor: node.color || '#6b7280',
-                                opacity: opacity,
-                                borderWidth: isSelected ? 2.5 : 1.5,
-                                borderColor: isSelected ? '#ffffff' : 'rgba(26, 21, 58, 0.6)',
-                                transform: [{ scale: isSelected ? 1.15 : 1 }]
-                              }
-                            ]}
-                          >
-                            <Ionicons
-                              name={getNodeIcon(node.type) as any}
-                              size={Math.max(12, size * 0.95)}
-                              color="#1a1a2e"
-                            />
-                            {/* Floating Text Label */}
-                            <View style={[styles.nodeLabelContainer, { top: size * 2 + 3 }]}>
-                              <Text style={styles.nodeLabelText} numberOfLines={1}>
-                                {node.label}
-                              </Text>
-                            </View>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  </View>
-                </>
-              );
-            })()}
+          <View style={styles.panelField}>
+            <Text style={styles.panelFieldLbl}>Influence Score</Text>
+            <Text style={styles.panelFieldVal}>
+              {calculatedInfluence !== null ? `${calculatedInfluence}%` : '—%'}
+            </Text>
           </View>
-        )}
 
-        {/* Floating Zoom / Reset Tools */}
-        <View style={styles.toolsContainer}>
-          <Pressable style={styles.toolBtn} onPress={handleZoomIn}>
-            <Ionicons name="add" size={18} color="#fff" />
-          </Pressable>
-          <Pressable style={styles.toolBtn} onPress={handleZoomOut}>
-            <Ionicons name="remove" size={18} color="#fff" />
-          </Pressable>
-          <Pressable style={[styles.toolBtn, { width: 54 }]} onPress={handleReset}>
-            <Text style={styles.toolBtnText}>Reset</Text>
-          </Pressable>
-          <Pressable style={[styles.toolBtn, { width: 54 }]} onPress={fetchGraph}>
-            <Ionicons name="refresh" size={16} color="#fff" />
-          </Pressable>
-        </View>
+          <View style={styles.panelField}>
+            <Text style={styles.panelFieldLbl}>Effect / Impact</Text>
+            <Text style={[
+              styles.panelFieldVal,
+              { color: getNodeEffect(selectedNode.type) === 'Positive' ? Colors.success : getNodeEffect(selectedNode.type) === 'Negative' ? Colors.danger : Colors.textSecondary }
+            ]}>
+              {getNodeEffect(selectedNode.type)}
+            </Text>
+          </View>
 
-        {/* Floating Sliding Details Panel */}
-        {selectedNode && (
-          <Animated.View
-            style={[
-              styles.slidePanel,
-              { transform: [{ translateX: slideAnim }] }
-            ]}
-          >
-            <View style={styles.panelHeader}>
-              <Text style={styles.panelTitle} numberOfLines={1}>{selectedNode.label}</Text>
-              <Pressable onPress={() => setSelectedNodeId(null)} style={styles.panelCloseBtn}>
-                <Ionicons name="close" size={18} color="#fff" />
-              </Pressable>
-            </View>
+          <View style={styles.panelField}>
+            <Text style={styles.panelFieldLbl}>Connected Nodes</Text>
+            <View style={styles.connectedNodesRow}>
+              {(() => {
+                const uniqueTypes: { type: string; color: string }[] = [];
+                const seenTypes = new Set<string>();
+                connectedLinks.forEach((link) => {
+                  const otherId = link.source === selectedNode.id ? link.target : link.source;
+                  const otherNode = nodes.find((n) => n.id === otherId);
+                  if (otherNode && !seenTypes.has(otherNode.type)) {
+                    seenTypes.add(otherNode.type);
+                    uniqueTypes.push({ type: otherNode.type, color: otherNode.color });
+                  }
+                });
 
-            <ScrollView style={styles.panelContent} showsVerticalScrollIndicator={false}>
-              <View style={styles.panelField}>
-                <Text style={styles.panelFieldLbl}>Node Type</Text>
-                <Text style={[styles.panelFieldVal, { color: selectedNode.color, fontWeight: '700' }]}>
-                  {selectedNode.type}
-                </Text>
-              </View>
-
-              <View style={styles.panelField}>
-                <Text style={styles.panelFieldLbl}>Influence Score</Text>
-                <Text style={styles.panelFieldVal}>
-                  {calculatedInfluence !== null ? `${calculatedInfluence}%` : '—%'}
-                </Text>
-              </View>
-
-              <View style={styles.panelField}>
-                <Text style={styles.panelFieldLbl}>Effect / Impact</Text>
-                <Text style={[styles.panelFieldVal, { color: getNodeEffect(selectedNode.type) === 'Positive' ? Colors.success : getNodeEffect(selectedNode.type) === 'Negative' ? Colors.danger : Colors.textSecondary }]}>
-                  {getNodeEffect(selectedNode.type)}
-                </Text>
-              </View>
-
-              <View style={styles.panelField}>
-                <Text style={styles.panelFieldLbl}>Connected Nodes</Text>
-                <View style={styles.connectedNodesRow}>
-                  {connectedLinks.length > 0 ? (
-                    connectedLinks.map((link, idx) => {
-                      const otherId = link.source === selectedNode.id ? link.target : link.source;
-                      const otherNode = nodes.find((n) => n.id === otherId);
-                      if (!otherNode) return null;
-                      return (
-                        <View key={idx} style={[styles.connNodeChip, { borderColor: otherNode.color }]}>
-                          <Text style={[styles.connNodeChipText, { color: otherNode.color }]}>
-                            {otherNode.type}
-                          </Text>
-                        </View>
-                      );
-                    }).filter(Boolean)
-                  ) : (
-                    <Text style={styles.panelDesc}>No connections</Text>
-                  )}
-                </View>
-              </View>
-
-              <View style={styles.panelField}>
-                <Text style={styles.panelFieldLbl}>Behavior Explanation</Text>
-                <Text style={styles.panelDesc}>
-                  {getNodeExplanation(selectedNode)}
-                </Text>
-              </View>
-
-              <View style={styles.panelField}>
-                <Text style={styles.panelFieldLbl}>Active Relationships</Text>
-                {pathsList.length > 0 ? (
-                  pathsList.map((p, i) => (
-                    <View key={i} style={styles.cypherPathBox}>
-                      <Ionicons name="link-outline" size={12} color={Colors.secondary} style={{ marginRight: 6 }} />
-                      <Text style={styles.cypherPathText} numberOfLines={4}>
-                        {formatPath(p)}
+                return uniqueTypes.length > 0 ? (
+                  uniqueTypes.map((item, idx) => (
+                    <View key={idx} style={[styles.connNodeChip, { borderColor: item.color }]}>
+                      <Text style={[styles.connNodeChipText, { color: item.color }]}>
+                        {item.type}
                       </Text>
                     </View>
                   ))
                 ) : (
-                  <Text style={styles.panelDesc}>No active relationships.</Text>
-                )}
-              </View>
-            </ScrollView>
-          </Animated.View>
-        )}
-      </View>
+                  <Text style={styles.panelDesc}>No connections</Text>
+                );
+              })()}
+            </View>
+          </View>
 
-      {/* Guide Card at bottom when no node selected */}
-      {!selectedNode && (
-        <View style={styles.detailCard}>
+          <View style={styles.panelField}>
+            <Text style={styles.panelFieldLbl}>Behavior Explanation</Text>
+            <Text style={styles.panelDesc}>
+              {getNodeExplanation(selectedNode)}
+            </Text>
+          </View>
+
+          <View style={styles.panelField}>
+            <Text style={styles.panelFieldLbl}>Active Relationships</Text>
+            {pathsList.length > 0 ? (
+              pathsList.map((p, i) => (
+                <View key={i} style={styles.cypherPathBox}>
+                  <Ionicons name="link-outline" size={12} color={Colors.secondary} style={{ marginRight: 6 }} />
+                  <Text style={styles.cypherPathText} numberOfLines={4}>
+                    {formatPath(p)}
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.panelDesc}>No active relationships.</Text>
+            )}
+          </View>
+        </View>
+      ) : (
+        <View style={styles.detailsCardEmpty}>
           <View style={styles.detailHeader}>
             <Ionicons name="git-network-outline" size={18} color={Colors.secondary} style={{ marginRight: 6 }} />
-            <Text style={styles.detailTitle}>Neo4j Real-Time Mapping</Text>
+            <Text style={styles.detailTitle}>Real-Time Mapping</Text>
           </View>
           <Text style={styles.detailDesc}>
             Tap any node bubble in the canvas to slide open the intelligence panel, highlighting its multi-hop wellness links.
@@ -1290,10 +1152,113 @@ export default function GraphViewScreen() {
       )}
     </View>
   );
+
+  return (
+    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+      {toast ? (
+        <View style={[styles.toast, { backgroundColor: toast.startsWith('❌') ? Colors.danger : Colors.success }]}>
+          <Ionicons
+            name={toast.startsWith('❌') ? 'close-circle' : 'checkmark-circle'}
+            size={18}
+            color="#fff"
+            style={{ marginRight: 8 }}
+          />
+          <Text style={styles.toastText}>{toast}</Text>
+        </View>
+      ) : null}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        scrollEnabled={scrollEnabled}
+      >
+        {HeaderContent}
+
+        {entriesCount < 3 || nodes.length <= 1 ? (
+          MainContent
+        ) : isTablet ? (
+          <View style={styles.tabletLayout}>
+            <View style={styles.mainColumn}>{MainContent}</View>
+            <View style={styles.leftColumn}>{LeftContent}</View>
+          </View>
+        ) : (
+          <View style={styles.mobileLayout}>
+            {MainContent}
+            {LeftContent}
+          </View>
+        )}
+      </ScrollView>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  scrollContent: { flexGrow: 1, paddingBottom: 24 },
+  tabletLayout: {
+    flexDirection: 'row',
+    alignSelf: 'stretch',
+    gap: Spacing.four,
+    width: '100%',
+    marginTop: Spacing.two,
+    paddingHorizontal: Spacing.three,
+  },
+  mobileLayout: {
+    flexDirection: 'column',
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+  leftColumn: {
+    flex: 1.0,
+    gap: Spacing.three,
+  },
+  mainColumn: {
+    flex: 1.7,
+    gap: Spacing.three,
+  },
+  columnInner: {
+    alignSelf: 'stretch',
+    gap: Spacing.three,
+  },
+  legendCard: {
+    backgroundColor: '#1f1a3a',
+    borderRadius: 16,
+    padding: Spacing.three,
+    borderWidth: 1,
+    borderColor: '#2a2456',
+    marginHorizontal: Spacing.three,
+    marginBottom: Spacing.two,
+  },
+  legendCardTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: Colors.textSecondary,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  legendGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  detailsCard: {
+    backgroundColor: '#1f1a3a',
+    borderRadius: 16,
+    padding: Spacing.three,
+    borderWidth: 1,
+    borderColor: '#2a2456',
+    marginHorizontal: Spacing.three,
+    marginBottom: Spacing.two,
+  },
+  detailsCardEmpty: {
+    backgroundColor: '#1f1a3a',
+    borderRadius: 16,
+    padding: Spacing.three,
+    borderWidth: 1,
+    borderColor: '#2a2456',
+    marginHorizontal: Spacing.three,
+    marginBottom: Spacing.two,
+  },
   header: {
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.three,
@@ -1346,12 +1311,13 @@ const styles = StyleSheet.create({
   loadingText: { color: Colors.textSecondary, fontSize: 13 },
   
   toolsContainer: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
     flexDirection: 'row',
     gap: 8,
-    zIndex: 90,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginTop: 4,
+    marginBottom: 12,
   },
   toolBtn: {
     width: 32,
@@ -1569,17 +1535,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   toast: {
+    position: 'absolute',
+    top: 24,
+    left: 24,
+    right: 24,
     borderRadius: 12,
-    padding: 12,
-    marginHorizontal: Spacing.three,
-    marginBottom: Spacing.two,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
+    zIndex: 99999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 10,
   },
   toastText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
     flex: 1,
   },
   searchContainer: {

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable, Platform, Alert, Animated } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Pressable, Platform, Alert, Animated, useWindowDimensions } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -28,6 +28,8 @@ function getMoodEmoji(mood: number) {
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isTablet = width >= 768;
   const [userName, setUserName] = useState('');
   const [userId, setUserId] = useState('');
   const [todayEntry, setTodayEntry] = useState<MoodEntry | null>(null);
@@ -40,6 +42,11 @@ export default function DashboardScreen() {
   const [hasEntries, setHasEntries] = useState<boolean | null>(null);
   const [entriesLength, setEntriesLength] = useState(0);
   const [isPresentationMode, setIsPresentationMode] = useState(false);
+  const [toast, setToast] = useState('');
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 2500);
+  };
 
   // Behavioral Intelligence states
   const [biScore, setBiScore] = useState(0);
@@ -60,12 +67,12 @@ export default function DashboardScreen() {
         Animated.timing(pulseAnim, {
           toValue: 1.05,
           duration: 1500,
-          useNativeDriver: Platform.OS !== 'web',
+          useNativeDriver: false,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1.0,
           duration: 1500,
-          useNativeDriver: Platform.OS !== 'web',
+          useNativeDriver: false,
         }),
       ])
     );
@@ -110,6 +117,13 @@ export default function DashboardScreen() {
         setIsPresentationMode(storedPresMode === 'true');
         const uid = storedId || '';
         setUserId(uid);
+
+        // Check for welcome toast
+        const showWelcome = await AsyncStorage.getItem('@mindgraph_show_welcome_toast');
+        if (showWelcome === 'true') {
+          showToast('✅ Profile created successfully! Welcome to MindGraph.');
+          await AsyncStorage.removeItem('@mindgraph_show_welcome_toast');
+        }
 
         // Load local mood entries
         const entries = await getEntries();
@@ -439,202 +453,21 @@ export default function DashboardScreen() {
     return "Your behavioral patterns are forming. Continue logging to unlock insights.";
   };
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Greeting */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>{getGreeting()},</Text>
-          <Text style={styles.name}>{userName} 👋</Text>
-        </View>
-        <View style={styles.streakBadge}>
-          <Ionicons name="flame" size={16} color={Colors.warning} />
-          <Text style={styles.streakText}>{streak} day{streak !== 1 ? 's' : ''}</Text>
-        </View>
+  const HeaderContent = (
+    <View style={styles.header}>
+      <View>
+        <Text style={styles.greeting}>{getGreeting()},</Text>
+        <Text style={styles.name}>{userName} 👋</Text>
       </View>
+      <View style={styles.streakBadge}>
+        <Ionicons name="flame" size={16} color={Colors.warning} />
+        <Text style={styles.streakText}>{streak} day{streak !== 1 ? 's' : ''}</Text>
+      </View>
+    </View>
+  );
 
-      {hasEntries === false ? (
-        <View style={styles.emptyCardContainer}>
-          <View style={styles.emptyCardGraphic}>
-            <Ionicons name="compass-outline" size={48} color={Colors.secondary} />
-          </View>
-          <Text style={styles.emptyCardTitle}>Begin Your Journey</Text>
-          <Text style={styles.emptyCardText}>
-            Log your first day to begin your wellness journey and unlock Neo4j correlation intelligence.
-          </Text>
-          <Pressable
-            style={({ pressed }) => [styles.emptyLogBtn, pressed && { opacity: 0.85 }]}
-            onPress={handleQuickLog}
-          >
-            <Ionicons name="create-outline" size={16} color="#1a1a2e" style={{ marginRight: 6 }} />
-             <Text style={styles.emptyLogBtnText}>{"Log Today's Mood"}</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <>
-          {/* AI Behavioral Discovery Card */}
-          <View style={styles.discoveryCard}>
-            <View style={styles.discoveryHeader}>
-              <Ionicons name="sparkles" size={14} color={Colors.secondary} />
-              <Text style={styles.discoveryTag}>AI BEHAVIORAL DISCOVERY</Text>
-            </View>
-            <Text style={styles.discoveryText}>
-              {getDiscoverySentence()}
-            </Text>
-          </View>
-
-          {/* Behavioral Intelligence OS Dashboard */}
-          <View style={styles.dashboardContainer}>
-            <Text style={styles.dashboardTitle}>Behavioral Intelligence OS</Text>
-            
-            <View style={styles.dashboardRow}>
-              {/* BIS Circular Gauge Card */}
-              <View style={styles.bisCard}>
-                <Animated.View style={[
-                  styles.gradeCircle,
-                  {
-                    transform: [{ scale: pulseAnim }],
-                    opacity: glowAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.92, 1],
-                    }),
-                  }
-                ]}>
-                  <Text style={styles.gradeText}>{biGrade}</Text>
-                  <Text style={styles.bisValText}>{biScore > 0 ? `${biScore}%` : '—%'}</Text>
-                </Animated.View>
-                <Text style={styles.bisLabel}>Intelligence Score (BIS)</Text>
-                <Text style={styles.bisSub}>Composite performance index</Text>
-              </View>
-
-              {/* Tomorrow's Productivity Forecast */}
-              <View style={styles.forecastCard}>
-                <View style={styles.forecastHeader}>
-                  <Ionicons name="sparkles" size={14} color={Colors.secondary} />
-                  <Text style={styles.forecastTitle}>Productivity Forecast</Text>
-                </View>
-                <Text style={styles.forecastScore}>{forecast && forecast.score > 0 ? `${forecast.score}%` : '—%'}</Text>
-                <View style={styles.confidenceRow}>
-                  <Text style={styles.confidenceLabel}>Confidence:</Text>
-                  <View style={styles.confidenceBarBg}>
-                    <View style={[styles.confidenceBarFill, { width: `${forecast ? forecast.confidence : 0}%` }]} />
-                  </View>
-                  <Text style={styles.confidenceVal}>{forecast && forecast.confidence > 0 ? `${forecast.confidence}%` : '—%'}</Text>
-                </View>
-                <Text style={styles.forecastReasoning} numberOfLines={3} ellipsizeMode="tail">
-                  {forecast ? forecast.reasoning : 'Log more entries to unlock forecast insights.'}
-                </Text>
-              </View>
-            </View>
-
-            {/* Behavioral Influencer Chips */}
-            <View style={styles.influencersRow}>
-              <View style={styles.influencerChip}>
-                <Ionicons name="trophy-outline" size={12} color={Colors.secondary} />
-                <Text style={styles.influencerText}>
-                  Top Habit: <Text style={styles.influencerName}>{influentialHabit && influentialHabit.name !== 'Not enough historical data available yet.' ? influentialHabit.name : '—'}</Text>
-                </Text>
-              </View>
-              <View style={styles.influencerChip}>
-                <Ionicons name="flash-outline" size={12} color="#84cc16" />
-                <Text style={styles.influencerText}>
-                  Top Activity: <Text style={styles.influencerName}>{influentialActivity && influentialActivity.name !== 'Not enough historical data available yet.' ? influentialActivity.name : '—'}</Text>
-                </Text>
-              </View>
-            </View>
-
-            {/* Discovery Paths (Strongest Positive / Strongest Negative) */}
-            <View style={styles.pathsCard}>
-              <Text style={styles.pathsHeaderTitle}>Neo4j Relationship Path Discovery</Text>
-              
-              <Pressable
-                onPress={() => handleShowPathDetails('catalyst')}
-                style={({ pressed }) => [
-                  styles.pathItem,
-                  pressed && { opacity: 0.75 }
-                ]}
-              >
-                <View style={styles.pathLabelRow}>
-                  <View style={styles.pathIndicatorGreen} />
-                  <Text style={styles.pathLabel}>Strongest Catalyst Path</Text>
-                  <Text style={styles.pathScoreGreen}>{paths && paths.strongestPositive.score > 0 ? `+${paths.strongestPositive.score} pts` : '—'}</Text>
-                </View>
-                <View style={styles.pathTextContainer}>
-                  <Text style={styles.pathText}>{paths && paths.strongestPositive.score > 0 ? paths.strongestPositive.path : '—'}</Text>
-                </View>
-              </Pressable>
-
-              <Pressable
-                onPress={() => handleShowPathDetails('risk')}
-                style={({ pressed }) => [
-                  styles.pathItem,
-                  pressed && { opacity: 0.75 }
-                ]}
-              >
-                <View style={styles.pathLabelRow}>
-                  <View style={styles.pathIndicatorRed} />
-                  <Text style={styles.pathLabel}>Critical Risk Path</Text>
-                  <Text style={styles.pathScoreRed}>{paths && paths.strongestNegative.score > 0 ? `${paths.strongestNegative.score}% Risk` : '—'}</Text>
-                </View>
-                <View style={styles.pathTextContainer}>
-                  <Text style={styles.pathText}>{paths && paths.strongestNegative.score > 0 ? paths.strongestNegative.path : '—'}</Text>
-                </View>
-              </Pressable>
-            </View>
-          </View>
-
-          {/* Burnout Gauge */}
-          <Animated.View style={[
-            styles.gaugeCard,
-            {
-              borderColor: glowAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: ['#2a2456', '#5b4ea8']
-              })
-            }
-          ]}>
-            <MoodGauge score={burnoutScore} />
-            <View style={styles.trendRow}>
-              <Ionicons name={trendIcon as any} size={14} color={trendColor} />
-              <Text style={[styles.trendText, { color: trendColor }]}>
-                {burnoutTrend.charAt(0).toUpperCase() + burnoutTrend.slice(1)} trend
-              </Text>
-            </View>
-            <Text style={styles.gaugeCaption}>
-              Early Warning Engine · Dynamic Burnout Index
-            </Text>
-          </Animated.View>
-
-          {/* Stats 2x2 Grid */}
-          <View style={styles.statsGrid}>
-            <View style={styles.statsRow}>
-              <View style={styles.statCard}>
-                <Ionicons name="analytics-outline" size={20} color={Colors.secondary} />
-                <Text style={styles.statVal}>{moodAverage > 0 ? `${moodAverage}/10` : '—'}</Text>
-                <Text style={styles.statLabel}>7-Day Mood</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Ionicons name="sparkles-outline" size={20} color="#84cc16" />
-                <Text style={styles.statVal}>{productivityAverage > 0 ? `${productivityAverage}%` : '—'}</Text>
-                <Text style={styles.statLabel}>Productivity</Text>
-              </View>
-            </View>
-            <View style={styles.statsRow}>
-              <View style={styles.statCard}>
-                <Ionicons name="flame-outline" size={20} color={Colors.warning} />
-                <Text style={styles.statVal}>{streak} Day{streak !== 1 ? 's' : ''}</Text>
-                <Text style={styles.statLabel}>Active Streak</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Ionicons name="shield-checkmark-outline" size={20} color={burnoutScore > 70 ? Colors.danger : burnoutScore > 40 ? Colors.warning : Colors.success} />
-                <Text style={styles.statVal}>{burnoutScore}/100</Text>
-                <Text style={styles.statLabel}>Burnout Risk</Text>
-              </View>
-            </View>
-          </View>
-        </>
-      )}
-
+  const MainContent = (
+    <View style={styles.columnInner}>
       {/* Today's mood card */}
       <Text style={styles.sectionTitle}>{"Today's Status"}</Text>
       {todayEntry ? (
@@ -732,8 +565,223 @@ export default function DashboardScreen() {
         <Ionicons name="chevron-forward" size={18} color="#1a1a2e" />
       </Pressable>
 
-      {!isPresentationMode && <Text style={styles.footer}>{"HACKHAZARDS '26 · Neo4j + OpenAI · Expo"}</Text>}
-    </ScrollView>
+      {/* Stats 2x2 Grid */}
+      {hasEntries !== false && (
+        <View style={styles.statsGrid}>
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Ionicons name="analytics-outline" size={20} color={Colors.secondary} />
+              <Text style={styles.statVal}>{moodAverage > 0 ? `${moodAverage}/10` : '—'}</Text>
+              <Text style={styles.statLabel}>7-Day Mood</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Ionicons name="sparkles-outline" size={20} color="#84cc16" />
+              <Text style={styles.statVal}>{productivityAverage > 0 ? `${productivityAverage}%` : '—'}</Text>
+              <Text style={styles.statLabel}>Productivity</Text>
+            </View>
+          </View>
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Ionicons name="flame-outline" size={20} color={Colors.warning} />
+              <Text style={styles.statVal}>{streak} Day{streak !== 1 ? 's' : ''}</Text>
+              <Text style={styles.statLabel}>Active Streak</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Ionicons name="shield-checkmark-outline" size={20} color={burnoutScore > 70 ? Colors.danger : burnoutScore > 40 ? Colors.warning : Colors.success} />
+              <Text style={styles.statVal}>{burnoutScore}/100</Text>
+              <Text style={styles.statLabel}>Burnout Risk</Text>
+            </View>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+
+  const LeftContent = hasEntries === false ? (
+    <View style={styles.emptyCardContainer}>
+      <View style={styles.emptyCardGraphic}>
+        <Ionicons name="compass-outline" size={48} color={Colors.secondary} />
+      </View>
+      <Text style={styles.emptyCardTitle}>Begin Your Journey</Text>
+      <Text style={styles.emptyCardText}>
+        Log your first day to begin your wellness journey and unlock Neo4j correlation intelligence.
+      </Text>
+      <Pressable
+        style={({ pressed }) => [styles.emptyLogBtn, pressed && { opacity: 0.85 }]}
+        onPress={handleQuickLog}
+      >
+        <Ionicons name="create-outline" size={16} color="#1a1a2e" style={{ marginRight: 6 }} />
+        <Text style={styles.emptyLogBtnText}>{"Log Today's Mood"}</Text>
+      </Pressable>
+    </View>
+  ) : (
+    <View style={styles.columnInner}>
+      {/* AI Behavioral Discovery Card */}
+      <View style={styles.discoveryCard}>
+        <View style={styles.discoveryHeader}>
+          <Ionicons name="sparkles" size={14} color={Colors.secondary} />
+          <Text style={styles.discoveryTag}>AI BEHAVIORAL DISCOVERY</Text>
+        </View>
+        <Text style={styles.discoveryText}>
+          {getDiscoverySentence()}
+        </Text>
+      </View>
+
+      {/* Behavioral Intelligence OS Dashboard */}
+      <View style={styles.dashboardContainer}>
+        <Text style={styles.dashboardTitle}>Behavioral Intelligence OS</Text>
+        
+        <View style={styles.dashboardRow}>
+          {/* BIS Circular Gauge Card */}
+          <View style={styles.bisCard}>
+            <Animated.View style={[
+              styles.gradeCircle,
+              {
+                transform: [{ scale: pulseAnim }],
+                opacity: glowAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.92, 1],
+                }),
+              }
+            ]}>
+              <Text style={styles.gradeText}>{biGrade}</Text>
+              <Text style={styles.bisValText}>{biScore > 0 ? `${biScore}%` : '—%'}</Text>
+            </Animated.View>
+            <Text style={styles.bisLabel}>Intelligence Score (BIS)</Text>
+            <Text style={styles.bisSub}>Composite performance index</Text>
+          </View>
+
+          {/* Tomorrow's Productivity Forecast */}
+          <View style={styles.forecastCard}>
+            <View style={styles.forecastHeader}>
+              <Ionicons name="sparkles" size={14} color={Colors.secondary} />
+              <Text style={styles.forecastTitle}>Productivity Forecast</Text>
+            </View>
+            <Text style={styles.forecastScore}>{forecast && forecast.score > 0 ? `${forecast.score}%` : '—%'}</Text>
+            <View style={styles.confidenceRow}>
+              <Text style={styles.confidenceLabel}>Confidence:</Text>
+              <View style={styles.confidenceBarBg}>
+                <View style={[styles.confidenceBarFill, { width: `${forecast ? forecast.confidence : 0}%` }]} />
+              </View>
+              <Text style={styles.confidenceVal}>{forecast && forecast.confidence > 0 ? `${forecast.confidence}%` : '—%'}</Text>
+            </View>
+            <Text style={styles.forecastReasoning} numberOfLines={3} ellipsizeMode="tail">
+              {forecast ? forecast.reasoning : 'Log more entries to unlock forecast insights.'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Behavioral Influencer Chips */}
+        <View style={styles.influencersRow}>
+          <View style={styles.influencerChip}>
+            <Ionicons name="trophy-outline" size={12} color={Colors.secondary} />
+            <Text style={styles.influencerText}>
+              Top Habit: <Text style={styles.influencerName}>{influentialHabit && influentialHabit.name !== 'Not enough historical data available yet.' ? influentialHabit.name : '—'}</Text>
+            </Text>
+          </View>
+          <View style={styles.influencerChip}>
+            <Ionicons name="flash-outline" size={12} color="#84cc16" />
+            <Text style={styles.influencerText}>
+              Top Activity: <Text style={styles.influencerName}>{influentialActivity && influentialActivity.name !== 'Not enough historical data available yet.' ? influentialActivity.name : '—'}</Text>
+            </Text>
+          </View>
+        </View>
+
+        {/* Discovery Paths (Strongest Positive / Strongest Negative) */}
+        <View style={styles.pathsCard}>
+          <Text style={styles.pathsHeaderTitle}>Neo4j Relationship Path Discovery</Text>
+          
+          <Pressable
+            onPress={() => handleShowPathDetails('catalyst')}
+            style={({ pressed }) => [
+              styles.pathItem,
+              pressed && { opacity: 0.75 }
+            ]}
+          >
+            <View style={styles.pathLabelRow}>
+              <View style={styles.pathIndicatorGreen} />
+              <Text style={styles.pathLabel}>Strongest Catalyst Path</Text>
+              <Text style={styles.pathScoreGreen}>{paths && paths.strongestPositive.score > 0 ? `+${paths.strongestPositive.score} pts` : '—'}</Text>
+            </View>
+            <View style={styles.pathTextContainer}>
+              <Text style={styles.pathText}>{paths && paths.strongestPositive.score > 0 ? paths.strongestPositive.path : '—'}</Text>
+            </View>
+          </Pressable>
+
+          <Pressable
+            onPress={() => handleShowPathDetails('risk')}
+            style={({ pressed }) => [
+              styles.pathItem,
+              pressed && { opacity: 0.75 }
+            ]}
+          >
+            <View style={styles.pathLabelRow}>
+              <View style={styles.pathIndicatorRed} />
+              <Text style={styles.pathLabel}>Critical Risk Path</Text>
+              <Text style={styles.pathScoreRed}>{paths && paths.strongestNegative.score > 0 ? `${paths.strongestNegative.score}% Risk` : '—'}</Text>
+            </View>
+            <View style={styles.pathTextContainer}>
+              <Text style={styles.pathText}>{paths && paths.strongestNegative.score > 0 ? paths.strongestNegative.path : '—'}</Text>
+            </View>
+          </Pressable>
+        </View>
+      </View>
+
+      {/* Burnout Gauge */}
+      <Animated.View style={[
+        styles.gaugeCard,
+        {
+          borderColor: glowAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['#2a2456', '#5b4ea8']
+          })
+        }
+      ]}>
+        <MoodGauge score={burnoutScore} />
+        <View style={styles.trendRow}>
+          <Ionicons name={trendIcon as any} size={14} color={trendColor} />
+          <Text style={[styles.trendText, { color: trendColor }]}>
+            {burnoutTrend.charAt(0).toUpperCase() + burnoutTrend.slice(1)} trend
+          </Text>
+        </View>
+        <Text style={styles.gaugeCaption}>
+          Early Warning Engine · Dynamic Burnout Index
+        </Text>
+      </Animated.View>
+    </View>
+  );
+
+  return (
+    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+      {toast ? (
+        <View style={[styles.toast, { backgroundColor: toast.startsWith('❌') ? Colors.danger : Colors.success }]}>
+          <Ionicons
+            name={toast.startsWith('❌') ? 'close-circle' : 'checkmark-circle'}
+            size={18}
+            color="#fff"
+            style={{ marginRight: 8 }}
+          />
+          <Text style={styles.toastText}>{toast}</Text>
+        </View>
+      ) : null}
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        {HeaderContent}
+
+        {isTablet ? (
+          <View style={styles.tabletLayout}>
+            <View style={styles.leftColumn}>{LeftContent}</View>
+            <View style={styles.mainColumn}>{MainContent}</View>
+          </View>
+        ) : (
+          <View style={styles.mobileLayout}>
+            {MainContent}
+            {LeftContent}
+          </View>
+        )}
+
+        {!isPresentationMode && <Text style={styles.footer}>{"HACKHAZARDS '26 · Neo4j + OpenAI · Expo"}</Text>}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -742,10 +790,34 @@ const styles = StyleSheet.create({
   content: {
     padding: Spacing.three,
     alignItems: 'center',
-    maxWidth: Platform.OS === 'web' ? 580 : '100%',
+    maxWidth: Platform.OS === 'web' ? 960 : '100%',
     alignSelf: 'center',
     width: '100%',
     paddingBottom: 40,
+  },
+  tabletLayout: {
+    flexDirection: 'row',
+    alignSelf: 'stretch',
+    gap: Spacing.four,
+    width: '100%',
+    marginTop: Spacing.two,
+  },
+  mobileLayout: {
+    flexDirection: 'column',
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+  leftColumn: {
+    flex: 1.1,
+    gap: Spacing.three,
+  },
+  mainColumn: {
+    flex: 1.2,
+    gap: Spacing.three,
+  },
+  columnInner: {
+    alignSelf: 'stretch',
+    gap: Spacing.three,
   },
   header: {
     alignSelf: 'stretch',
@@ -1222,5 +1294,27 @@ const styles = StyleSheet.create({
     color: '#1a1a2e',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  toast: {
+    position: 'absolute',
+    top: 24,
+    left: 24,
+    right: 24,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 99999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  toastText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
+    flex: 1,
   },
 });
