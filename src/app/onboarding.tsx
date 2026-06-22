@@ -129,7 +129,7 @@ export default function OnboardingScreen() {
       {/* Bottom tag */}
       <View style={styles.hackBadge}>
         <Ionicons name="trophy-outline" size={12} color="#f59e0b" style={{ marginRight: 6 }} />
-        <Text style={styles.hackBadgeText}>HACKHAZARDS '26 · Human Experience & Productivity</Text>
+        <Text style={styles.hackBadgeText}>{"HACKHAZARDS '26 · Human Experience & Productivity"}</Text>
       </View>
     </View>
   );
@@ -147,7 +147,7 @@ export default function OnboardingScreen() {
           <TextInput
             style={styles.input}
             placeholder="e.g. Sneha"
-            placeholderTextColor="#3d3760"
+            placeholderTextColor={Colors.textMuted}
             value={name}
             onChangeText={(v) => { setName(v); setError(''); }}
             autoCapitalize="words"
@@ -165,7 +165,7 @@ export default function OnboardingScreen() {
           <TextInput
             style={styles.input}
             placeholder="e.g. sneha@example.com"
-            placeholderTextColor="#3d3760"
+            placeholderTextColor={Colors.textMuted}
             value={email}
             onChangeText={(v) => { setEmail(v); setError(''); }}
             keyboardType="email-address"
@@ -191,11 +191,11 @@ export default function OnboardingScreen() {
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator color="#0a0820" />
+          <ActivityIndicator color={Colors.background} />
         ) : (
           <>
             <Text style={styles.buttonText}>Get Started</Text>
-            <Ionicons name="arrow-forward" size={18} color="#0a0820" style={{ marginLeft: 8 }} />
+            <Ionicons name="arrow-forward" size={18} color={Colors.background} style={{ marginLeft: 8 }} />
           </>
         )}
       </Pressable>
@@ -252,7 +252,7 @@ export default function OnboardingScreen() {
                 </View>
               ))}
             </View>
-            <Text style={styles.disclaimer}>Built for HACKHAZARDS '26 · Theme: Human Experience & Productivity</Text>
+            <Text style={styles.disclaimer}>{"Built for HACKHAZARDS '26 · Theme: Human Experience & Productivity"}</Text>
           </View>
         )}
       </ScrollView>
@@ -280,9 +280,9 @@ const styles = StyleSheet.create({
   },
   splitLeft: {
     flex: 1,
-    backgroundColor: '#0d0a1e',
+    backgroundColor: Colors.card,
     borderRightWidth: 1,
-    borderRightColor: '#1e1a38',
+    borderRightColor: Colors.border,
     padding: 48,
     justifyContent: 'center',
   },
@@ -308,9 +308,9 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#7c3aed20',
+    backgroundColor: Colors.primary + '20',
     borderWidth: 2,
-    borderColor: '#7c3aed',
+    borderColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -330,12 +330,12 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#7c3aed25',
+    backgroundColor: Colors.primary + '20',
     borderWidth: 2,
-    borderColor: '#7c3aed80',
+    borderColor: Colors.primary + '50',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#7c3aed',
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,
     shadowRadius: 20,
@@ -345,13 +345,13 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 38,
     fontWeight: '800',
-    color: '#ffffff',
+    color: Colors.text,
     letterSpacing: -1,
     marginBottom: 8,
   },
   tagline: {
     fontSize: 16,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     lineHeight: 24,
   },
 
@@ -377,12 +377,12 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#ffffff',
+    color: Colors.text,
     marginBottom: 4,
   },
   featureDesc: {
     fontSize: 13,
-    color: '#6b7280',
+    color: Colors.textMuted,
     lineHeight: 19,
   },
 
@@ -405,11 +405,11 @@ const styles = StyleSheet.create({
 
   // ── Form Panel (right) ──
   formPanel: {
-    backgroundColor: '#13102a',
+    backgroundColor: Colors.card,
     borderRadius: 24,
     padding: 32,
     borderWidth: 1,
-    borderColor: '#221e42',
+    borderColor: Colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
@@ -420,13 +420,13 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#ffffff',
+    color: Colors.text,
     marginBottom: 6,
     letterSpacing: -0.5,
   },
   formSubtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: Colors.textSecondary,
     marginBottom: 28,
     lineHeight: 20,
   },
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#6b7280',
+    color: Colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 8,
@@ -444,9 +444,9 @@ const styles = StyleSheet.create({
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0d0a1e',
+    backgroundColor: Colors.cardSecondary,
     borderWidth: 1.5,
-    borderColor: '#221e42',
+    borderColor: Colors.border,
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -454,11 +454,11 @@ const styles = StyleSheet.create({
   } as any,
   inputWrapFocused: {
     borderColor: Colors.secondary,
-    backgroundColor: '#0a1520',
+    backgroundColor: Colors.cardSecondary,
   },
   input: {
     flex: 1,
-    color: '#ffffff',
+    color: Colors.text,
     fontSize: 15,
     outlineStyle: 'none',
   } as any,
@@ -498,13 +498,13 @@ const styles = StyleSheet.create({
   buttonPressed: { opacity: 0.87 },
   buttonDisabled: { opacity: 0.6, shadowOpacity: 0 },
   buttonText: {
-    color: '#0a0820',
+    color: Colors.background,
     fontWeight: '800',
     fontSize: 17,
   },
   privacyNote: {
     fontSize: 12,
-    color: '#4b5563',
+    color: Colors.textMuted,
     textAlign: 'center',
     lineHeight: 18,
   },
@@ -518,21 +518,21 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   pill: {
-    backgroundColor: '#7c3aed15',
+    backgroundColor: Colors.primary + '15',
     borderWidth: 1,
-    borderColor: '#7c3aed40',
+    borderColor: Colors.primary + '40',
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 6,
   },
   pillText: {
-    color: '#8b5cf6',
+    color: Colors.primary,
     fontSize: 12,
     fontWeight: '600',
   },
   disclaimer: {
     fontSize: 11,
-    color: '#374151',
+    color: Colors.textMuted,
     textAlign: 'center',
     marginBottom: 16,
   },

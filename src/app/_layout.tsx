@@ -180,14 +180,15 @@ function TabLayoutContent() {
           </View>
         )}
 
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, position: 'relative' }}>
           <Tabs
             screenOptions={{
+              headerShown: Platform.OS === 'web' ? false : !isTablet,
               tabBarActiveTintColor: Colors.secondary,
               tabBarInactiveTintColor: '#6b7280',
               tabBarStyle: {
-                backgroundColor: '#16122d',
-                borderTopColor: '#272145',
+                backgroundColor: Colors.card,
+                borderTopColor: Colors.border,
                 borderTopWidth: 1,
                 height: isTablet ? 0 : 64 + insets.bottom,
                 display: isTablet ? 'none' : 'flex',
@@ -205,7 +206,7 @@ function TabLayoutContent() {
               },
               headerStyle: {
                 backgroundColor: Colors.background,
-                borderBottomColor: '#2a2456',
+                borderBottomColor: Colors.border,
                 borderBottomWidth: 1,
               },
               headerTitleStyle: {
@@ -294,9 +295,9 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   sidebar: {
     width: 240,
-    backgroundColor: '#16122d',
+    backgroundColor: Colors.card,
     borderRightWidth: 1,
-    borderRightColor: '#272145',
+    borderRightColor: Colors.border,
     paddingVertical: 24,
     justifyContent: 'space-between',
   },
@@ -311,11 +312,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#7c3aed20',
+    backgroundColor: Colors.primary + '20',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#7c3aed40',
+    borderColor: Colors.primary + '40',
   },
   logoEmoji: {
     fontSize: 18,
@@ -338,7 +339,7 @@ const styles = StyleSheet.create({
     height: 48,
   },
   sidebarItemActive: {
-    backgroundColor: 'rgba(20, 184, 166, 0.08)',
+    backgroundColor: Colors.secondary + '14',
   },
   activeIndicator: {
     position: 'absolute',
@@ -366,7 +367,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#272145',
+    borderTopColor: Colors.border,
     gap: 12,
   },
   avatar: {
@@ -380,7 +381,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1a1a2e',
+    color: Colors.background,
   },
   profileTextContainer: {
     flex: 1,

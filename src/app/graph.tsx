@@ -355,6 +355,25 @@ function runForceSimulation(simNodes: GraphNode[], simLinks: GraphLink[], width:
   }
 }
 
+const Footer = () => {
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
+  return (
+    <View style={styles.footerContainer}>
+      <View style={[styles.footerRow, !isDesktop && { flexDirection: 'column', gap: 12 }]}>
+        <Text style={styles.footerBrand}>🧠 MindGraph OS</Text>
+        <View style={styles.footerLinks}>
+          <Text style={styles.footerText}>{"HACKHAZARDS '26"}</Text>
+          <Text style={styles.footerDot}>•</Text>
+          <Text style={styles.footerText}>Neo4j Cloud</Text>
+          <Text style={styles.footerDot}>•</Text>
+          <Text style={styles.footerText}>OpenAI GPT-4</Text>
+        </View>
+      </View>
+    </View>
+  );
+};
+
 export default function GraphViewScreen() {
   const router = useRouter();
   const { width: windowWidth } = useWindowDimensions();
@@ -364,10 +383,11 @@ export default function GraphViewScreen() {
     320,
     Platform.OS === 'web'
       ? isTablet
-        ? Math.min(850, safeWidthDimension * 0.62)
+        ? Math.min(1000, safeWidthDimension * 0.62)
         : Math.min(580, safeWidthDimension)
       : safeWidthDimension
   );
+  const canvasHeight = isTablet ? 580 : 380;
   const [nodes, setNodes] = useState<GraphNode[]>([]);
   const [links, setLinks] = useState<GraphLink[]>([]);
   const [loading, setLoading] = useState(true);
@@ -430,7 +450,7 @@ export default function GraphViewScreen() {
         vy: 0
       }));
 
-      runForceSimulation(finalNodes, graphLinks, canvasWidth, HEIGHT);
+      runForceSimulation(finalNodes, graphLinks, canvasWidth, canvasHeight);
       
       setNodes(finalNodes);
       setLinks(graphLinks);
@@ -442,7 +462,7 @@ export default function GraphViewScreen() {
         const userId = (await AsyncStorage.getItem('@mindgraph_userId')) || 'local_user';
         const localGraph = buildLocalGraph(localEntries, userId);
         
-        runForceSimulation(localGraph.nodes, localGraph.links, canvasWidth, HEIGHT);
+        runForceSimulation(localGraph.nodes, localGraph.links, canvasWidth, canvasHeight);
         setNodes(localGraph.nodes);
         setLinks(localGraph.links);
       } catch (localErr) {
@@ -548,7 +568,7 @@ export default function GraphViewScreen() {
                   return {
                     ...n,
                     x: Math.max(20, Math.min(cw - 20, newX)),
-                    y: Math.max(20, Math.min(HEIGHT - 20, newY)),
+                    y: Math.max(20, Math.min(canvasHeight - 20, newY)),
                   };
                 }
                 return n;
@@ -597,17 +617,20 @@ export default function GraphViewScreen() {
 
   // Automatically reset zoom and pan on canvas resize to re-center the graph
   useEffect(() => {
-    setZoom(1);
-    setPanX(0);
-    setPanY(0);
-    const { nodes: currentNodes, links: currentLinks } = latestRef.current;
-    if (currentNodes && currentNodes.length > 0) {
-      setNodes(() => {
-        const updatedNodes = currentNodes.map((n) => ({ ...n }));
-        runForceSimulation(updatedNodes, currentLinks, canvasWidth, HEIGHT);
-        return updatedNodes;
-      });
-    }
+    const timer = setTimeout(() => {
+      setZoom(1);
+      setPanX(0);
+      setPanY(0);
+      const { nodes: currentNodes, links: currentLinks } = latestRef.current;
+      if (currentNodes && currentNodes.length > 0) {
+        setNodes(() => {
+          const updatedNodes = currentNodes.map((n) => ({ ...n }));
+          runForceSimulation(updatedNodes, currentLinks, canvasWidth, canvasHeight);
+          return updatedNodes;
+        });
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [canvasWidth]);
 
   const handleSelectSearchedNode = (node: GraphNode) => {
@@ -615,9 +638,9 @@ export default function GraphViewScreen() {
     setSearchQuery('');
     setZoom(1.2);
     const safeNodeX = toSafeNumber(node.x, canvasWidth / 2);
-    const safeNodeY = toSafeNumber(node.y, HEIGHT / 2);
+    const safeNodeY = toSafeNumber(node.y, canvasHeight / 2);
     setPanX(canvasWidth / 2 - safeNodeX * 1.2);
-    setPanY(HEIGHT / 2 - safeNodeY * 1.2);
+    setPanY(canvasHeight / 2 - safeNodeY * 1.2);
     if (Platform.OS !== 'web') Haptics.selectionAsync();
   };
 
@@ -799,9 +822,9 @@ export default function GraphViewScreen() {
   ];
 
   const HeaderContent = (
-    <View style={styles.header}>
-      <Text style={styles.title}>Interactive Behavioral Graph</Text>
-      <Text style={styles.subText}>Drag nodes, zoom, and tap to filter correlations.</Text>
+    <View style={styles.pageHeader}>
+      <Text style={styles.pageTitle}>Interactive Behavioral Graph</Text>
+      <Text style={styles.pageSub}>Drag nodes, zoom, and tap to filter correlations.</Text>
     </View>
   );
 
@@ -844,7 +867,7 @@ export default function GraphViewScreen() {
       )}
 
       {/* Graph Area */}
-      <View style={styles.canvasContainer} {...(panResponder ? panResponder.panHandlers : {})}>
+      <View style={[styles.canvasContainer, { height: canvasHeight }]} {...(panResponder ? panResponder.panHandlers : {})}>
         {loading ? (
           <View style={styles.loadingWrap}>
             <ActivityIndicator color={Colors.secondary} size="large" />
@@ -870,27 +893,27 @@ export default function GraphViewScreen() {
             </View>
           </View>
         ) : (
-          <View style={{ width: canvasWidth, height: HEIGHT, position: 'relative', alignSelf: 'center' }}>
+          <View style={{ width: canvasWidth, height: canvasHeight, position: 'relative', alignSelf: 'center' }}>
             {(() => {
               const safePanX = toSafeNumber(panX, 0);
               const safePanY = toSafeNumber(panY, 0);
               const safeZoom = toSafeNumber(zoom, 1);
               const halfWidth = canvasWidth / 2;
-              const halfHeight = HEIGHT / 2;
+              const halfHeight = canvasHeight / 2;
 
               return (
                 <>
-                  <Svg width={canvasWidth} height={HEIGHT} style={styles.svg} pointerEvents="none">
-                    <G transform={`translate(${safePanX.toFixed(2)}, ${safePanY.toFixed(2)}) scale(${safeZoom.toFixed(2)})`}>
+                  <View style={{ position: 'absolute', left: 0, top: 0, width: canvasWidth, height: canvasHeight }} pointerEvents="none">
+                    <Svg width={canvasWidth} height={canvasHeight} pointerEvents="none">
                       {links.map((link) => {
                         const s = nodes.find((n) => n.id === link.source);
                         const t = nodes.find((n) => n.id === link.target);
                         if (!s || !t) return null;
 
-                        const sX = toSafeNumber(s.x, halfWidth);
-                        const sY = toSafeNumber(s.y, halfHeight);
-                        const tX = toSafeNumber(t.x, halfWidth);
-                        const tY = toSafeNumber(t.y, halfHeight);
+                        const sX = toSafeNumber(s.x, halfWidth) * safeZoom + safePanX;
+                        const sY = toSafeNumber(s.y, halfHeight) * safeZoom + safePanY;
+                        const tX = toSafeNumber(t.x, halfWidth) * safeZoom + safePanX;
+                        const tY = toSafeNumber(t.y, halfHeight) * safeZoom + safePanY;
 
                         const isHighlighted = !isFilterActive || highlightedLinkIds.has(link.id);
                         const opacity = isHighlighted ? 0.85 : 0.12;
@@ -904,73 +927,60 @@ export default function GraphViewScreen() {
                             x2={tX}
                             y2={tY}
                             stroke={strokeColor}
-                            strokeWidth={isHighlighted ? 2.5 : 1}
+                            strokeWidth={(isHighlighted ? 2.5 : 1) * safeZoom}
                             opacity={opacity}
                           />
                         );
                       })}
-                    </G>
-                  </Svg>
+                    </Svg>
+                  </View>
 
                   <View
-                    style={{ position: 'absolute', left: 0, top: 0, width: canvasWidth, height: HEIGHT }}
+                    style={{ position: 'absolute', left: 0, top: 0, width: canvasWidth, height: canvasHeight }}
                     pointerEvents="none"
                   >
-                    <View
-                      style={{
-                        transform: [
-                          { translateX: safePanX },
-                          { translateY: safePanY },
-                          { scale: safeZoom }
-                        ],
-                        // @ts-ignore
-                        transformOrigin: 'top left',
-                        position: 'absolute',
-                        width: canvasWidth,
-                        height: HEIGHT,
-                      }}
-                    >
-                      {nodes.map((node) => {
-                        const isHighlighted = !isFilterActive || highlightedNodeIds.has(node.id);
-                        const opacity = isHighlighted ? 1 : 0.22;
-                        const isSelected = selectedNodeId === node.id;
-                        const size = node.size || 16;
-                        const nodeX = toSafeNumber(node.x, halfWidth);
-                        const nodeY = toSafeNumber(node.y, halfHeight);
+                    {nodes.map((node) => {
+                      const isHighlighted = !isFilterActive || highlightedNodeIds.has(node.id);
+                      const opacity = isHighlighted ? 1 : 0.22;
+                      const isSelected = selectedNodeId === node.id;
+                      
+                      const baseSize = node.size || 16;
+                      const size = baseSize * safeZoom;
+                      const nodeX = toSafeNumber(node.x, halfWidth) * safeZoom + safePanX;
+                      const nodeY = toSafeNumber(node.y, halfHeight) * safeZoom + safePanY;
 
-                        return (
-                          <View
-                            key={node.id}
-                            style={[
-                              styles.nodeView,
-                              {
-                                left: nodeX - size,
-                                top: nodeY - size,
-                                width: size * 2,
-                                height: size * 2,
-                                borderRadius: size,
-                                backgroundColor: node.color || '#6b7280',
-                                opacity: opacity,
-                                borderWidth: isSelected ? 2.5 : 1.5,
-                                borderColor: isSelected ? '#ffffff' : 'rgba(26, 21, 58, 0.6)',
-                                transform: [{ scale: isSelected ? 1.15 : 1 }]
-                              }
-                            ]}
-                          >
-                            <Ionicons
-                              name={getNodeIcon(node.type) as any}
-                              size={Math.max(12, size * 0.95)}
-                              color="#1a1a2e"
-                            />
-                            {isHighlighted && (showAllLabels || isSelected || node.type === 'User') && (
-                              <View style={[styles.nodeLabelContainer, { top: size * 2 + 3 }]}>
-                                <Text style={styles.nodeLabelText} numberOfLines={1}>{node.label}</Text>
-                              </View>
-                            )}
-                          </View>
-                        );
-                      })}
-                    </View>
+                      return (
+                        <View
+                          key={node.id}
+                          style={[
+                            styles.nodeView,
+                            {
+                              left: nodeX - size,
+                              top: nodeY - size,
+                              width: size * 2,
+                              height: size * 2,
+                              borderRadius: size,
+                              backgroundColor: node.color || '#6b7280',
+                              opacity: opacity,
+                              borderWidth: (isSelected ? 2.5 : 1.5) * Math.min(2, Math.max(0.8, safeZoom)),
+                              borderColor: isSelected ? '#ffffff' : 'rgba(26, 21, 58, 0.6)',
+                              transform: [{ scale: isSelected ? 1.15 : 1 }]
+                            }
+                          ]}
+                        >
+                          <Ionicons
+                            name={getNodeIcon(node.type) as any}
+                            size={Math.max(10, size * 0.95)}
+                            color="#1a1a2e"
+                          />
+                          {isHighlighted && (showAllLabels || isSelected || node.type === 'User') && (
+                            <View style={[styles.nodeLabelContainer, { top: size * 2 + 3, left: size - 50 }]}>
+                              <Text style={styles.nodeLabelText} numberOfLines={1}>{node.label}</Text>
+                            </View>
+                          )}
+                        </View>
+                      );
+                    })}
                   </View>
                 </>
               );
@@ -981,31 +991,29 @@ export default function GraphViewScreen() {
     </View>
   );
 
-  const LeftContent = (
+  const SearchBarSection = entriesCount >= 3 && nodes.length > 1 ? (
     <View style={styles.columnInner}>
       {/* Node Search Bar */}
-      {entriesCount >= 3 && nodes.length > 1 && (
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={16} color={Colors.textSecondary} style={{ marginRight: 8 }} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search nodes (e.g. Sleep, Gym, Mood)..."
-            placeholderTextColor="#6b7280"
-            value={searchQuery}
-            onChangeText={(text) => {
-              setSearchQuery(text);
-              if (text.trim() === '') {
-                setSelectedNodeId(null);
-              }
-            }}
-          />
-          {searchQuery ? (
-            <Pressable onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={16} color={Colors.textSecondary} />
-            </Pressable>
-          ) : null}
-        </View>
-      )}
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={16} color={Colors.textSecondary} style={{ marginRight: 8 }} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search nodes (e.g. Sleep, Gym, Mood)..."
+          placeholderTextColor="#6b7280"
+          value={searchQuery}
+          onChangeText={(text) => {
+            setSearchQuery(text);
+            if (text.trim() === '') {
+              setSelectedNodeId(null);
+            }
+          }}
+        />
+        {searchQuery ? (
+          <Pressable onPress={() => setSearchQuery('')}>
+            <Ionicons name="close-circle" size={16} color={Colors.textSecondary} />
+          </Pressable>
+        ) : null}
+      </View>
 
       {filteredSearchNodes.length > 0 && (
         <View style={styles.searchResultsContainer}>
@@ -1024,7 +1032,11 @@ export default function GraphViewScreen() {
           </ScrollView>
         </View>
       )}
+    </View>
+  ) : null;
 
+  const LegendAndDetailsSection = (
+    <View style={styles.columnInner}>
       {/* Legend board */}
       <View style={styles.legendCard}>
         <Text style={styles.legendCardTitle}>Filter Categories</Text>
@@ -1153,6 +1165,13 @@ export default function GraphViewScreen() {
     </View>
   );
 
+  const LeftContent = (
+    <View style={styles.columnInner}>
+      {SearchBarSection}
+      {LegendAndDetailsSection}
+    </View>
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: Colors.background }}>
       {toast ? (
@@ -1168,7 +1187,7 @@ export default function GraphViewScreen() {
       ) : null}
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: isTablet ? 48 : 120 }]}
         scrollEnabled={scrollEnabled}
       >
         {HeaderContent}
@@ -1182,29 +1201,41 @@ export default function GraphViewScreen() {
           </View>
         ) : (
           <View style={styles.mobileLayout}>
+            {SearchBarSection}
             {MainContent}
-            {LeftContent}
+            {LegendAndDetailsSection}
           </View>
         )}
+        {!isTablet && <Footer />}
       </ScrollView>
+      {isTablet && <Footer />}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  scrollContent: { flexGrow: 1, paddingBottom: 24 },
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+  scrollContent: {
+    paddingHorizontal: Platform.OS === 'web' ? 40 : 24,
+    paddingTop: Platform.OS === 'web' ? 40 : 32,
+    paddingBottom: 48,
+    width: '100%',
+    flexGrow: 1,
+  },
   tabletLayout: {
     flexDirection: 'row',
-    alignSelf: 'stretch',
-    gap: Spacing.four,
+    gap: 24,
     width: '100%',
-    marginTop: Spacing.two,
-    paddingHorizontal: Spacing.three,
+    alignItems: 'flex-start',
   },
   mobileLayout: {
     flexDirection: 'column',
-    alignSelf: 'stretch',
+    gap: 24,
     width: '100%',
   },
   leftColumn: {
@@ -1220,12 +1251,11 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   legendCard: {
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.card,
     borderRadius: 16,
     padding: Spacing.three,
     borderWidth: 1,
-    borderColor: '#2a2456',
-    marginHorizontal: Spacing.three,
+    borderColor: Colors.border,
     marginBottom: Spacing.two,
   },
   legendCardTitle: {
@@ -1242,30 +1272,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   detailsCard: {
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.card,
     borderRadius: 16,
     padding: Spacing.three,
     borderWidth: 1,
-    borderColor: '#2a2456',
-    marginHorizontal: Spacing.three,
+    borderColor: Colors.border,
     marginBottom: Spacing.two,
   },
   detailsCardEmpty: {
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.card,
     borderRadius: 16,
     padding: Spacing.three,
     borderWidth: 1,
-    borderColor: '#2a2456',
-    marginHorizontal: Spacing.three,
+    borderColor: Colors.border,
     marginBottom: Spacing.two,
   },
-  header: {
-    paddingHorizontal: Spacing.three,
-    paddingTop: Spacing.three,
-    paddingBottom: Spacing.one,
-  },
-  title: { fontSize: 20, fontWeight: 'bold', color: Colors.text },
-  subText: { fontSize: 13, color: Colors.textSecondary, marginTop: 4 },
+  pageHeader: { marginBottom: 28 },
+  pageTitle: { fontSize: 26, fontWeight: '800', color: Colors.text, letterSpacing: -0.5 },
+  pageSub: { fontSize: 14, color: Colors.textSecondary, marginTop: 6 },
   
   legendRow: {
     flexDirection: 'row',
@@ -1292,11 +1316,10 @@ const styles = StyleSheet.create({
   },
   
   canvasContainer: {
-    height: HEIGHT,
-    backgroundColor: '#171330',
+    backgroundColor: Colors.card,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#2a2456',
+    borderColor: Colors.border,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -1322,23 +1345,16 @@ const styles = StyleSheet.create({
   toolBtn: {
     width: 32,
     height: 32,
-    backgroundColor: '#1f1a3ad0',
+    backgroundColor: Colors.cardSecondary,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#3e3870',
+    borderColor: Colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  toolBtnText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  toolBtnText: { color: Colors.text, fontSize: 10, fontWeight: 'bold' },
   
-  detailCard: {
-    margin: Spacing.three,
-    backgroundColor: '#1f1a3a',
-    borderRadius: 16,
-    padding: Spacing.three,
-    borderWidth: 1,
-    borderColor: '#2a2456',
-  },
+
   detailHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1376,12 +1392,12 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 8,
     fontWeight: 'bold',
-    backgroundColor: 'rgba(26, 21, 58, 0.85)',
+    backgroundColor: 'rgba(24, 24, 27, 0.85)',
     paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 4,
     borderWidth: 0.5,
-    borderColor: '#3a346e',
+    borderColor: Colors.border,
     textAlign: 'center',
   },
   
@@ -1392,11 +1408,11 @@ const styles = StyleSheet.create({
     right: 16,
     bottom: 16,
     width: 250,
-    backgroundColor: 'rgba(26, 21, 58, 0.95)',
+    backgroundColor: 'rgba(24, 24, 27, 0.95)',
     borderRadius: 16,
     padding: 12,
     borderWidth: 1.5,
-    borderColor: 'rgba(20, 184, 166, 0.25)',
+    borderColor: Colors.border,
     shadowColor: '#000',
     shadowOffset: { width: -4, height: 4 },
     shadowOpacity: 0.45,
@@ -1409,7 +1425,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#3a346e',
+    borderBottomColor: Colors.border,
     paddingBottom: 8,
     marginBottom: 10,
   },
@@ -1424,7 +1440,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#3a346e',
+    backgroundColor: Colors.cardSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1463,7 +1479,8 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    backgroundColor: 'rgba(26, 21, 58, 0.4)',
+    backgroundColor: Colors.card,
+    borderColor: Colors.border,
   },
   connNodeChipText: {
     fontSize: 8,
@@ -1472,12 +1489,12 @@ const styles = StyleSheet.create({
   cypherPathBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#16122d',
+    backgroundColor: Colors.cardSecondary,
     borderRadius: 6,
     padding: 6,
     marginBottom: 4,
     borderWidth: 0.5,
-    borderColor: '#3a346e',
+    borderColor: Colors.border,
   },
   cypherPathText: {
     fontSize: 9,
@@ -1492,19 +1509,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#171330',
+    backgroundColor: Colors.card,
     padding: 24,
   },
   emptyGraphic: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.cardSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 1.5,
-    borderColor: '#2e265c',
+    borderColor: Colors.border,
   },
   emptyTitle: {
     fontSize: 15,
@@ -1530,7 +1547,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   emptyLogBtnText: {
-    color: '#1a1a2e',
+    color: Colors.background,
     fontWeight: 'bold',
     fontSize: 13,
   },
@@ -1559,28 +1576,26 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.cardSecondary,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#2a2456',
-    marginHorizontal: Spacing.three,
+    borderColor: Colors.border,
     marginBottom: Spacing.two,
     paddingHorizontal: 12,
     height: 40,
   },
   searchInput: {
     flex: 1,
-    color: '#ffffff',
+    color: Colors.text,
     fontSize: 13,
     paddingVertical: 4,
   },
   searchResultsContainer: {
-    marginHorizontal: Spacing.three,
     marginBottom: Spacing.two,
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.cardSecondary,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.secondary,
+    borderColor: Colors.border,
     maxHeight: 180,
     zIndex: 200,
     overflow: 'hidden',
@@ -1594,11 +1609,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2456',
+    borderBottomColor: Colors.border,
   },
   searchResultText: {
     flex: 1,
-    color: '#ffffff',
+    color: Colors.text,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -1607,5 +1622,41 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  footerContainer: {
+    paddingHorizontal: Platform.OS === 'web' ? 40 : 24,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.background,
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  footerBrand: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.textMuted,
+    letterSpacing: 0.5,
+  },
+  footerLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  footerText: {
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  footerDot: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    opacity: 0.4,
   },
 });

@@ -14,6 +14,25 @@ import { logMood, resetUserData } from '../services/api';
 import { seedSampleLogs, clearAllDemoData } from '../utils/sampleData';
 import { UserContext } from './_layout';
 
+const Footer = () => {
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
+  return (
+    <View style={styles.footerContainer}>
+      <View style={[styles.footerRow, !isDesktop && { flexDirection: 'column', gap: 12 }]}>
+        <Text style={styles.footerBrand}>🧠 MindGraph OS</Text>
+        <View style={styles.footerLinks}>
+          <Text style={styles.footerText}>{"HACKHAZARDS '26"}</Text>
+          <Text style={styles.footerDot}>•</Text>
+          <Text style={styles.footerText}>Neo4j Cloud</Text>
+          <Text style={styles.footerDot}>•</Text>
+          <Text style={styles.footerText}>OpenAI GPT-4</Text>
+        </View>
+      </View>
+    </View>
+  );
+};
+
 export default function ProfileScreen() {
   const router = useRouter();
   const { logout } = useContext(UserContext);
@@ -296,10 +315,10 @@ export default function ProfileScreen() {
             autoFocus
           />
           <Pressable style={styles.saveBtn} onPress={handleUpdateName}>
-            <Ionicons name="checkmark" size={18} color="#1a1a2e" />
+            <Ionicons name="checkmark" size={18} color={Colors.background} />
           </Pressable>
           <Pressable style={styles.cancelBtn} onPress={() => setIsEditingName(false)}>
-            <Ionicons name="close" size={18} color="#fff" />
+            <Ionicons name="close" size={18} color={Colors.text} />
           </Pressable>
         </View>
       ) : (
@@ -316,6 +335,7 @@ export default function ProfileScreen() {
 
   const MainContent = (
     <View style={styles.columnInner}>
+      <Text style={styles.sectionTitle}>Wellness Metrics</Text>
       {/* STATS ROW */}
       <View style={styles.statsCard}>
         <View style={styles.statCol}>
@@ -409,10 +429,14 @@ export default function ProfileScreen() {
             <Text style={styles.settingsDesc}>Hide debug metadata and maximize visual polish for judges.</Text>
           </View>
           <Pressable
-            style={[styles.toggleBtn, isPresentationMode && styles.toggleBtnActive]}
+            style={[
+              styles.toggleBtn,
+              isPresentationMode && styles.toggleBtnActive,
+              { alignItems: isPresentationMode ? 'flex-end' : 'flex-start' }
+            ]}
             onPress={handleTogglePresentationMode}
           >
-            <View style={[styles.toggleCircle, isPresentationMode && styles.toggleCircleActive]} />
+            <View style={styles.toggleCircle} />
           </Pressable>
         </View>
 
@@ -456,7 +480,7 @@ export default function ProfileScreen() {
           <Text style={styles.toastText}>{toast}</Text>
         </View>
       ) : null}
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingBottom: isTablet ? 48 : 120 }]}>
         {HeaderContent}
 
         {isTablet ? (
@@ -471,8 +495,9 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        <Text style={styles.footer}>MindGraph Behavioral OS · Version 2.0.0</Text>
+        {!isTablet && <Footer />}
       </ScrollView>
+      {isTablet && <Footer />}
 
     {/* ── INLINE OVERLAY: Sample Count Picker ── */}
     {showSamplePicker && (
@@ -504,7 +529,7 @@ export default function ProfileScreen() {
               <Text style={styles.modalCancelText}>Cancel</Text>
             </Pressable>
             <Pressable style={styles.modalConfirmBtn} onPress={() => handlePrepopulate(sampleCount)}>
-              <Ionicons name="construct-outline" size={16} color="#1a1a2e" style={{ marginRight: 6 }} />
+              <Ionicons name="construct-outline" size={16} color={Colors.background} style={{ marginRight: 6 }} />
               <Text style={styles.modalConfirmText}>Load {sampleCount} Log{sampleCount > 1 ? 's' : ''}</Text>
             </Pressable>
           </View>
@@ -571,15 +596,18 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 48,
-    alignItems: 'center',
-    maxWidth: Platform.OS === 'web' ? 1100 : '100%',
-    alignSelf: 'center',
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    alignSelf: 'stretch',
     width: '100%',
+  },
+  content: {
+    paddingHorizontal: Platform.OS === 'web' ? 40 : 24,
+    paddingTop: Platform.OS === 'web' ? 40 : 32,
+    paddingBottom: 48,
+    width: '100%',
+    flexGrow: 1,
   },
   tabletLayout: {
     flexDirection: 'row',
@@ -613,7 +641,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     alignSelf: 'stretch',
     borderBottomWidth: 1,
-    borderBottomColor: '#221e42',
+    borderBottomColor: Colors.border,
   },
   avatarWrap: {
     marginBottom: 14,
@@ -633,7 +661,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: Colors.secondary + '55',
   },
-  avatarText: { fontSize: 32, fontWeight: '800', color: '#0a0820' },
+  avatarText: { fontSize: 32, fontWeight: '800', color: Colors.background },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -649,12 +677,12 @@ const styles = StyleSheet.create({
   },
   nameInput: {
     height: 36,
-    backgroundColor: '#2a2456',
+    backgroundColor: Colors.cardSecondary,
     borderWidth: 1,
     borderColor: Colors.secondary,
     borderRadius: 8,
     paddingHorizontal: 12,
-    color: '#fff',
+    color: Colors.text,
     fontSize: 15,
     width: 150,
   },
@@ -669,7 +697,7 @@ const styles = StyleSheet.create({
   cancelBtn: {
     width: 32,
     height: 32,
-    backgroundColor: '#4b5563',
+    backgroundColor: Colors.cardSecondary,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -697,10 +725,10 @@ const styles = StyleSheet.create({
   statsCard: {
     alignSelf: 'stretch',
     flexDirection: 'row',
-    backgroundColor: '#13102a',
+    backgroundColor: Colors.card,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#221e42',
+    borderColor: Colors.border,
     paddingVertical: 20,
     marginBottom: 24,
     shadowColor: '#000',
@@ -719,7 +747,7 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: '60%',
-    backgroundColor: '#221e42',
+    backgroundColor: Colors.border,
     alignSelf: 'center',
   },
 
@@ -741,10 +769,10 @@ const styles = StyleSheet.create({
   badgeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#13102a',
+    backgroundColor: Colors.card,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#221e42',
+    borderColor: Colors.border,
     padding: 16,
     gap: 14,
     shadowColor: '#000',
@@ -754,7 +782,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   badgeLocked: {
-    borderColor: '#1a1735',
+    borderColor: Colors.border,
     opacity: 0.55,
   },
   badgeIconBg: {
@@ -769,10 +797,10 @@ const styles = StyleSheet.create({
   
   settingsCard: {
     alignSelf: 'stretch',
-    backgroundColor: '#13102a',
+    backgroundColor: Colors.card,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#221e42',
+    borderColor: Colors.border,
     paddingHorizontal: 20,
     marginBottom: Spacing.three,
     shadowColor: '#000',
@@ -786,7 +814,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: '#1e1a38',
+    borderBottomColor: Colors.border,
   },
   settingsText: {
     flex: 1,
@@ -795,7 +823,7 @@ const styles = StyleSheet.create({
   settingsTitle: { fontSize: 14, fontWeight: '700', color: Colors.text },
   settingsDesc: { fontSize: 12, color: Colors.textSecondary, marginTop: 3, lineHeight: 17 },
   
-  footer: { fontSize: 10, color: '#374151', textAlign: 'center', marginTop: Spacing.two },
+  footer: { fontSize: 10, color: Colors.textMuted, textAlign: 'center', marginTop: Spacing.two },
   badgeUnlockDate: {
     fontSize: 9,
     fontWeight: 'bold',
@@ -806,7 +834,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#2a2456',
+    backgroundColor: Colors.cardSecondary,
     padding: 2,
     justifyContent: 'center',
   },
@@ -826,7 +854,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(9, 7, 20, 0.88)',
+    backgroundColor: 'rgba(9, 9, 11, 0.88)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 9999,
@@ -834,16 +862,16 @@ const styles = StyleSheet.create({
   modalOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(9, 7, 20, 0.85)',
+    backgroundColor: 'rgba(9, 9, 11, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999,
   },
   modalCard: {
-    backgroundColor: '#16122d',
+    backgroundColor: Colors.card,
     borderRadius: 24,
     borderWidth: 1.5,
-    borderColor: '#372f60',
+    borderColor: Colors.border,
     padding: 24,
     width: Platform.OS === 'web' ? 420 : '90%',
     shadowColor: Colors.primary,
@@ -876,9 +904,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 40,
     borderRadius: 10,
-    backgroundColor: '#0c0a18',
+    backgroundColor: Colors.cardSecondary,
     borderWidth: 1,
-    borderColor: '#2a2456',
+    borderColor: Colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -892,7 +920,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   countBtnTextActive: {
-    color: '#090714',
+    color: Colors.background,
   },
   modalActions: {
     flexDirection: 'row',
@@ -903,7 +931,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#372f60',
+    borderColor: Colors.border,
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
@@ -927,7 +955,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   modalConfirmText: {
-    color: '#090714',
+    color: Colors.background,
     fontWeight: 'bold',
     fontSize: 13,
   },
@@ -947,5 +975,41 @@ const styles = StyleSheet.create({
     lineHeight: 15,
     flex: 1,
     fontWeight: '600',
+  },
+  footerContainer: {
+    paddingHorizontal: Platform.OS === 'web' ? 40 : 24,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.background,
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  footerBrand: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.textMuted,
+    letterSpacing: 0.5,
+  },
+  footerLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  footerText: {
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  footerDot: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    opacity: 0.4,
   },
 });

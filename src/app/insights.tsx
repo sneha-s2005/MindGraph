@@ -11,6 +11,25 @@ import { seedSampleLogs, clearAllDemoData } from '../utils/sampleData';
 import HabitCard from '../components/HabitCard';
 import InsightCard from '../components/InsightCard';
 
+const Footer = () => {
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
+  return (
+    <View style={styles.footerContainer}>
+      <View style={[styles.footerRow, !isDesktop && { flexDirection: 'column', gap: 12 }]}>
+        <Text style={styles.footerBrand}>🧠 MindGraph OS</Text>
+        <View style={styles.footerLinks}>
+          <Text style={styles.footerText}>{"HACKHAZARDS '26"}</Text>
+          <Text style={styles.footerDot}>•</Text>
+          <Text style={styles.footerText}>Neo4j Cloud</Text>
+          <Text style={styles.footerDot}>•</Text>
+          <Text style={styles.footerText}>OpenAI GPT-4</Text>
+        </View>
+      </View>
+    </View>
+  );
+};
+
 export default function InsightsScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -435,12 +454,12 @@ export default function InsightsScreen() {
               fromZero
               segments={5}
               chartConfig={{
-                backgroundColor: '#1f1a3a',
-                backgroundGradientFrom: '#1f1a3a',
-                backgroundGradientTo: '#1f1a3a',
+                backgroundColor: Colors.card,
+                backgroundGradientFrom: Colors.card,
+                backgroundGradientTo: Colors.card,
                 decimalPlaces: 0,
-                color: (opacity = 1) => `rgba(20, 184, 166, ${opacity})`,
-                labelColor: (opacity = 1) => `rgba(156, 163, 175, ${opacity})`,
+                color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(161, 161, 170, ${opacity})`,
                 barPercentage: 0.6,
                 style: { borderRadius: 14 },
               }}
@@ -477,13 +496,13 @@ export default function InsightsScreen() {
                 }
               }}
               chartConfig={{
-                backgroundColor: '#1f1a3a',
-                backgroundGradientFrom: '#1f1a3a',
-                backgroundGradientTo: '#1f1a3a',
+                backgroundColor: Colors.card,
+                backgroundGradientFrom: Colors.card,
+                backgroundGradientTo: Colors.card,
                 decimalPlaces: 0,
-                color: (opacity = 1) => `rgba(132, 204, 22, ${opacity})`,
-                labelColor: (opacity = 1) => `rgba(156, 163, 175, ${opacity})`,
-                propsForDots: { r: '4', strokeWidth: '1', stroke: '#84cc16' },
+                color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(161, 161, 170, ${opacity})`,
+                propsForDots: { r: '4', strokeWidth: '1', stroke: Colors.primary },
                 style: { borderRadius: 14 },
               }}
               style={{ borderRadius: 14 }}
@@ -850,7 +869,7 @@ export default function InsightsScreen() {
           <Text style={styles.toastText}>{toast}</Text>
         </View>
       ) : null}
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingBottom: isTablet ? 48 : 120 }]}>
         {HeaderContent}
 
         {weeklyData.length < 3 ? (
@@ -867,7 +886,7 @@ export default function InsightsScreen() {
                 style={({ pressed }) => [styles.emptyLogBtn, pressed && { opacity: 0.85 }]}
                 onPress={() => router.push('/log')}
               >
-                <Ionicons name="create-outline" size={16} color="#1a1a2e" style={{ marginRight: 6 }} />
+                <Ionicons name="create-outline" size={16} color={Colors.background} style={{ marginRight: 6 }} />
                 <Text style={styles.emptyLogBtnText}>Log Today</Text>
               </Pressable>
             </View>
@@ -890,25 +909,26 @@ export default function InsightsScreen() {
           </View>
         )}
 
-        {!isPresentationMode && (
-          <Text style={styles.footer}>
-            {"Graph analysis via Neo4j AuraDB · AI powered by OpenAI GPT-3.5\nHACKHAZARDS '26 · Expo + Neo4j tracks"}
-          </Text>
-        )}
+        {!isTablet && <Footer />}
       </ScrollView>
+      {isTablet && <Footer />}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 48,
-    maxWidth: Platform.OS === 'web' ? 1100 : '100%',
-    alignSelf: 'center',
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    alignSelf: 'stretch',
     width: '100%',
+  },
+  content: {
+    paddingHorizontal: Platform.OS === 'web' ? 40 : 24,
+    paddingTop: Platform.OS === 'web' ? 40 : 32,
+    paddingBottom: 48,
+    width: '100%',
+    flexGrow: 1,
   },
   tabletLayout: {
     flexDirection: 'row',
@@ -945,9 +965,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row', gap: 12, marginBottom: 20, alignSelf: 'stretch',
   },
   statCard: {
-    flex: 1, backgroundColor: '#13102a', borderRadius: 16,
+    flex: 1, backgroundColor: Colors.card, borderRadius: 16,
     paddingVertical: 18, paddingHorizontal: 12, alignItems: 'center',
-    borderWidth: 1, borderColor: '#221e42', gap: 6,
+    borderWidth: 1, borderColor: Colors.border, gap: 6,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15, shadowRadius: 6, elevation: 2,
   },
@@ -956,8 +976,8 @@ const styles = StyleSheet.create({
   statLabel: { color: Colors.textSecondary, fontSize: 11, textAlign: 'center', fontWeight: '500' },
   
   card: {
-    alignSelf: 'stretch', backgroundColor: '#13102a', borderRadius: 20,
-    padding: 20, borderWidth: 1, borderColor: '#221e42', marginBottom: 4,
+    alignSelf: 'stretch', backgroundColor: Colors.card, borderRadius: 20,
+    padding: 20, borderWidth: 1, borderColor: Colors.border, marginBottom: 4,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.18, shadowRadius: 8, elevation: 3,
   },
@@ -970,8 +990,8 @@ const styles = StyleSheet.create({
   
   sleepImpactContainer: {
     flexDirection: 'row', gap: 10, marginTop: 10,
-    backgroundColor: '#231e42', borderRadius: 12, padding: 12,
-    borderWidth: 1, borderColor: '#2a2456',
+    backgroundColor: Colors.cardSecondary, borderRadius: 12, padding: 12,
+    borderWidth: 1, borderColor: Colors.border,
   },
   sleepImpactBox: {
     flex: 1, paddingHorizontal: 10, gap: 4,
@@ -985,7 +1005,7 @@ const styles = StyleSheet.create({
 
   negativeHabitRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: '#2a2456',
+    borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   negRankWrap: {
     width: 24, height: 24, borderRadius: 12, backgroundColor: '#ef444420',
@@ -995,7 +1015,7 @@ const styles = StyleSheet.create({
   negNameText: { fontSize: 13, fontWeight: 'bold', color: Colors.text },
   negDescText: { fontSize: 11, color: Colors.textSecondary, marginTop: 2 },
   
-  footer: { fontSize: 10, color: '#374151', textAlign: 'center', marginTop: Spacing.one },
+  footer: { fontSize: 10, color: Colors.textMuted, textAlign: 'center', marginTop: Spacing.one },
   graphDiffHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1008,16 +1028,16 @@ const styles = StyleSheet.create({
   },
   diffCol: {
     flex: 1,
-    backgroundColor: '#16122d',
+    backgroundColor: Colors.cardSecondary,
     borderRadius: 12,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#2a2456',
+    borderColor: Colors.border,
     gap: 8,
   },
   diffColNeo4j: {
     borderColor: Colors.secondary,
-    backgroundColor: 'rgba(20, 184, 166, 0.04)',
+    backgroundColor: Colors.secondary + '08',
   },
   diffColHeader: {
     flexDirection: 'row',
@@ -1025,7 +1045,7 @@ const styles = StyleSheet.create({
     gap: 4,
     marginBottom: 2,
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2456',
+    borderBottomColor: Colors.border,
     paddingBottom: 4,
   },
   diffColTitle: {
@@ -1044,11 +1064,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   influentialBody: {
-    backgroundColor: '#16122d',
+    backgroundColor: Colors.cardSecondary,
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#2a2456',
+    borderColor: Colors.border,
     marginTop: 4,
   },
   influentialMetrics: {
@@ -1056,7 +1076,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2456',
+    borderBottomColor: Colors.border,
     paddingBottom: 8,
     marginBottom: 8,
     flexWrap: 'wrap',
@@ -1083,9 +1103,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(20, 184, 166, 0.08)',
+    backgroundColor: Colors.secondary + '12',
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.3)',
+    borderColor: Colors.secondary + '30',
     borderRadius: 8,
     paddingVertical: 4,
     paddingHorizontal: 8,
@@ -1097,12 +1117,12 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     alignSelf: 'stretch',
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.card,
     borderRadius: 20,
     padding: 32,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2a2456',
+    borderColor: Colors.border,
     marginTop: 10,
     marginBottom: 20,
   },
@@ -1110,12 +1130,12 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#252047',
+    backgroundColor: Colors.cardSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#3a346e',
+    borderColor: Colors.border,
   },
   emptyTitle: {
     fontSize: 18,
@@ -1132,11 +1152,11 @@ const styles = StyleSheet.create({
   },
   neoWowCard: {
     alignSelf: 'stretch',
-    backgroundColor: '#16122d',
+    backgroundColor: Colors.card,
     borderRadius: 20,
     padding: 16,
     borderWidth: 1.5,
-    borderColor: 'rgba(20, 184, 166, 0.2)',
+    borderColor: Colors.border,
     marginBottom: 16,
   },
   neoWowHeader: {
@@ -1166,11 +1186,11 @@ const styles = StyleSheet.create({
   },
   wowStatBox: {
     flex: 1,
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.cardSecondary,
     borderRadius: 12,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#2a2456',
+    borderColor: Colors.border,
   },
   wowStatLbl: {
     fontSize: 9,
@@ -1200,11 +1220,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   pathCard: {
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.cardSecondary,
     borderRadius: 14,
     padding: 12,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: Colors.border,
     marginBottom: 10,
   },
   pathHeaderRow: {
@@ -1227,23 +1247,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#16122d',
+    backgroundColor: Colors.card,
     borderRadius: 10,
     padding: 8,
     borderWidth: 1,
-    borderColor: '#2a2456',
+    borderColor: Colors.border,
   },
   pathStepBox: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.cardSecondary,
     borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal: 4,
     borderWidth: 1,
-    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderColor: Colors.border,
     gap: 4,
   },
   pathStepText: {
@@ -1285,16 +1305,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   emptyLogBtnText: {
-    color: '#1a1a2e',
+    color: Colors.background,
     fontWeight: 'bold',
     fontSize: 14,
   },
   tooltipCard: {
     marginTop: 14,
-    backgroundColor: '#16122d',
+    backgroundColor: Colors.cardSecondary,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#2a2456',
+    borderColor: Colors.border,
     padding: 12,
     alignSelf: 'stretch',
   },
@@ -1328,11 +1348,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.card,
     borderRadius: 8,
     padding: 8,
     borderWidth: 1,
-    borderColor: '#2a2456',
+    borderColor: Colors.border,
     marginBottom: 8,
   },
   tooltipDetailText: {
@@ -1351,30 +1371,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontStyle: 'italic',
     borderTopWidth: 1,
-    borderTopColor: '#2a2456',
+    borderTopColor: Colors.border,
     paddingTop: 6,
     marginTop: 4,
-  },
-  emptyLogBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.secondary,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 14,
-  },
-  emptyLogBtnText: {
-    color: '#1a1a2e',
-    fontWeight: '700',
-    fontSize: 14,
   },
   emptyTipCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.card,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.secondary + '44',
+    borderColor: Colors.border,
     padding: 14,
     marginTop: 20,
     maxWidth: 400,
@@ -1385,5 +1392,41 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     flex: 1,
+  },
+  footerContainer: {
+    paddingHorizontal: Platform.OS === 'web' ? 40 : 24,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.background,
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  footerBrand: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.textMuted,
+    letterSpacing: 0.5,
+  },
+  footerLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  footerText: {
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  footerDot: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    opacity: 0.4,
   },
 });

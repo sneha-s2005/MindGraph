@@ -26,6 +26,25 @@ function getMoodEmoji(mood: number) {
   return '🤩';
 }
 
+const Footer = () => {
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
+  return (
+    <View style={styles.footerContainer}>
+      <View style={[styles.footerRow, !isDesktop && { flexDirection: 'column', gap: 12 }]}>
+        <Text style={styles.footerBrand}>🧠 MindGraph OS</Text>
+        <View style={styles.footerLinks}>
+          <Text style={styles.footerText}>{"HACKHAZARDS '26"}</Text>
+          <Text style={styles.footerDot}>•</Text>
+          <Text style={styles.footerText}>Neo4j Cloud</Text>
+          <Text style={styles.footerDot}>•</Text>
+          <Text style={styles.footerText}>OpenAI GPT-4</Text>
+        </View>
+      </View>
+    </View>
+  );
+};
+
 export default function DashboardScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -733,7 +752,7 @@ export default function DashboardScreen() {
         {
           borderColor: glowAnim.interpolate({
             inputRange: [0, 1],
-            outputRange: ['#2a2456', '#5b4ea8']
+            outputRange: [Colors.border, Colors.primary]
           })
         }
       ]}>
@@ -764,7 +783,7 @@ export default function DashboardScreen() {
           <Text style={styles.toastText}>{toast}</Text>
         </View>
       ) : null}
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingBottom: isTablet ? 48 : 120 }]}>
         {HeaderContent}
 
         {isTablet ? (
@@ -779,28 +798,33 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {!isPresentationMode && <Text style={styles.footer}>{"HACKHAZARDS '26 · Neo4j + OpenAI · Expo"}</Text>}
+        {!isTablet && <Footer />}
       </ScrollView>
+      {isTablet && <Footer />}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  content: {
-    padding: Spacing.three,
-    alignItems: 'center',
-    maxWidth: Platform.OS === 'web' ? 960 : '100%',
-    alignSelf: 'center',
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    alignSelf: 'stretch',
     width: '100%',
-    paddingBottom: 40,
+  },
+  content: {
+    paddingHorizontal: Platform.OS === 'web' ? 40 : 24,
+    paddingTop: Platform.OS === 'web' ? 40 : 32,
+    paddingBottom: 48,
+    width: '100%',
+    flexGrow: 1,
   },
   tabletLayout: {
     flexDirection: 'row',
     alignSelf: 'stretch',
-    gap: Spacing.four,
+    gap: 24,
     width: '100%',
-    marginTop: Spacing.two,
+    alignItems: 'flex-start',
   },
   mobileLayout: {
     flexDirection: 'column',
@@ -823,19 +847,18 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginTop: Spacing.two,
-    marginBottom: Spacing.three,
+    alignItems: 'center',
+    marginBottom: 28,
   },
-  greeting: { fontSize: 14, color: Colors.textSecondary },
-  name: { fontSize: 26, fontWeight: 'bold', color: Colors.text },
+  greeting: { fontSize: 14, color: Colors.textSecondary, marginBottom: 4 },
+  name: { fontSize: 26, fontWeight: '800', color: Colors.text, letterSpacing: -0.5 },
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#f59e0b15',
+    backgroundColor: Colors.warning + '15',
     borderWidth: 1,
-    borderColor: '#f59e0b40',
+    borderColor: Colors.warning + '40',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -843,12 +866,12 @@ const styles = StyleSheet.create({
   streakText: { color: Colors.warning, fontWeight: '700', fontSize: 13 },
   gaugeCard: {
     alignSelf: 'stretch',
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.card,
     borderRadius: 20,
     padding: Spacing.three,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2a2456',
+    borderColor: Colors.border,
     marginBottom: Spacing.three,
   },
   trendRow: {
@@ -858,7 +881,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   trendText: { fontSize: 12, fontWeight: '600' },
-  gaugeCaption: { fontSize: 11, color: '#6b7280', marginTop: 4, textAlign: 'center' },
+  gaugeCaption: { fontSize: 11, color: Colors.textMuted, marginTop: 4, textAlign: 'center' },
   
   statsGrid: {
     alignSelf: 'stretch',
@@ -871,12 +894,12 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.card,
     borderRadius: 14,
     padding: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2a2456',
+    borderColor: Colors.border,
     gap: 4,
   },
   statVal: { color: Colors.text, fontSize: 16, fontWeight: 'bold' },
@@ -891,11 +914,11 @@ const styles = StyleSheet.create({
   },
   todayCard: {
     alignSelf: 'stretch',
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.card,
     borderRadius: 16,
     padding: Spacing.three,
     borderWidth: 1,
-    borderColor: '#2a2456',
+    borderColor: Colors.border,
     marginBottom: Spacing.three,
   },
   todayHeader: {
@@ -912,12 +935,12 @@ const styles = StyleSheet.create({
   todayStatsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#231e42',
+    backgroundColor: Colors.cardSecondary,
     borderRadius: 10,
     padding: 10,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#2a2456',
+    borderColor: Colors.border,
   },
   todayStatItem: {
     flexDirection: 'row',
@@ -963,7 +986,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   habitActive: { backgroundColor: Colors.secondary, borderColor: Colors.secondary },
-  habitInactive: { backgroundColor: 'transparent', borderColor: '#2a2456' },
+  habitInactive: { backgroundColor: 'transparent', borderColor: Colors.border },
   habitBadgeTextInner: { fontSize: 11, fontWeight: '600' },
   
   todayNotes: {
@@ -971,18 +994,18 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontStyle: 'italic',
     borderTopWidth: 1,
-    borderTopColor: '#2a2456',
+    borderTopColor: Colors.border,
     paddingTop: 10,
     marginTop: 4,
   },
   emptyCard: {
     alignSelf: 'stretch',
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.card,
     borderRadius: 16,
     padding: Spacing.four,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2a2456',
+    borderColor: Colors.border,
     marginBottom: Spacing.three,
     gap: 8,
   },
@@ -1005,16 +1028,16 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  logButtonText: { flex: 1, color: '#1a1a2e', fontWeight: 'bold', fontSize: 15, marginLeft: 8 },
+  logButtonText: { flex: 1, color: Colors.background, fontWeight: 'bold', fontSize: 15, marginLeft: 8 },
   logButtonPressed: { opacity: 0.85 },
-  footer: { fontSize: 10, color: '#374151', textAlign: 'center' },
+  footer: { fontSize: 10, color: Colors.textMuted, textAlign: 'center' },
   dashboardContainer: {
     alignSelf: 'stretch',
-    backgroundColor: '#16122d',
+    backgroundColor: Colors.card,
     borderRadius: 24,
     padding: Spacing.three,
     borderWidth: 1,
-    borderColor: '#251e4a',
+    borderColor: Colors.border,
     marginBottom: Spacing.three,
   },
   dashboardTitle: {
@@ -1030,13 +1053,13 @@ const styles = StyleSheet.create({
   },
   bisCard: {
     flex: 1.1,
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.card,
     borderRadius: 16,
     padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#2a2456',
+    borderColor: Colors.border,
   },
   gradeCircle: {
     width: 68,
@@ -1046,7 +1069,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.secondary,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(20, 184, 166, 0.08)',
+    backgroundColor: Colors.secondary + '14',
     marginBottom: 8,
   },
   gradeText: {
@@ -1073,11 +1096,11 @@ const styles = StyleSheet.create({
   },
   forecastCard: {
     flex: 1.2,
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.card,
     borderRadius: 16,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#2a2456',
+    borderColor: Colors.border,
     justifyContent: 'space-between',
   },
   forecastHeader: {
@@ -1109,7 +1132,7 @@ const styles = StyleSheet.create({
   confidenceBarBg: {
     flex: 1,
     height: 4,
-    backgroundColor: '#2a2456',
+    backgroundColor: Colors.cardSecondary,
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -1137,9 +1160,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#201a42',
+    backgroundColor: Colors.cardSecondary,
     borderWidth: 1,
-    borderColor: '#2e265c',
+    borderColor: Colors.border,
     borderRadius: 10,
     paddingVertical: 8,
     paddingHorizontal: 10,
@@ -1153,11 +1176,11 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   pathsCard: {
-    backgroundColor: '#1e193e',
+    backgroundColor: Colors.cardSecondary,
     borderRadius: 16,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#2e265c',
+    borderColor: Colors.border,
   },
   pathsHeaderTitle: {
     fontSize: 11,
@@ -1168,12 +1191,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   pathItem: {
-    backgroundColor: 'rgba(26, 21, 58, 0.6)',
+    backgroundColor: Colors.card,
     borderRadius: 10,
     padding: 8,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#2e265c',
+    borderColor: Colors.border,
   },
   pathLabelRow: {
     flexDirection: 'row',
@@ -1211,7 +1234,7 @@ const styles = StyleSheet.create({
     color: '#ef4444',
   },
   pathTextContainer: {
-    backgroundColor: '#16122d',
+    backgroundColor: Colors.cardSecondary,
     borderRadius: 6,
     padding: 6,
   },
@@ -1222,11 +1245,11 @@ const styles = StyleSheet.create({
   },
   discoveryCard: {
     alignSelf: 'stretch',
-    backgroundColor: 'rgba(20, 184, 166, 0.08)',
+    backgroundColor: Colors.secondary + '12',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1.5,
-    borderColor: 'rgba(20, 184, 166, 0.25)',
+    borderColor: Colors.secondary + '30',
     marginBottom: 16,
   },
   discoveryHeader: {
@@ -1249,24 +1272,24 @@ const styles = StyleSheet.create({
   },
   emptyCardContainer: {
     alignSelf: 'stretch',
-    backgroundColor: '#1f1a3a',
+    backgroundColor: Colors.card,
     borderRadius: 20,
     padding: 24,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2a2456',
+    borderColor: Colors.border,
     marginBottom: 20,
   },
   emptyCardGraphic: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#252047',
+    backgroundColor: Colors.cardSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#3a346e',
+    borderColor: Colors.border,
   },
   emptyCardTitle: {
     fontSize: 18,
@@ -1291,7 +1314,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   emptyLogBtnText: {
-    color: '#1a1a2e',
+    color: Colors.background,
     fontWeight: 'bold',
     fontSize: 14,
   },
@@ -1316,5 +1339,41 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 13,
     flex: 1,
+  },
+  footerContainer: {
+    paddingHorizontal: Platform.OS === 'web' ? 40 : 24,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.background,
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  footerBrand: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.textMuted,
+    letterSpacing: 0.5,
+  },
+  footerLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  footerText: {
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  footerDot: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    opacity: 0.4,
   },
 });

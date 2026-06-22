@@ -30,6 +30,25 @@ const MOOD_COLORS: Record<number, string> = {
   9: '#06b6d4', 10: '#8b5cf6',
 };
 
+const Footer = () => {
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
+  return (
+    <View style={styles.footerContainer}>
+      <View style={[styles.footerRow, !isDesktop && { flexDirection: 'column', gap: 12 }]}>
+        <Text style={styles.footerBrand}>🧠 MindGraph OS</Text>
+        <View style={styles.footerLinks}>
+          <Text style={styles.footerText}>{"HACKHAZARDS '26"}</Text>
+          <Text style={styles.footerDot}>•</Text>
+          <Text style={styles.footerText}>Neo4j Cloud</Text>
+          <Text style={styles.footerDot}>•</Text>
+          <Text style={styles.footerText}>OpenAI GPT-4</Text>
+        </View>
+      </View>
+    </View>
+  );
+};
+
 export default function LogScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -159,8 +178,8 @@ export default function LogScreen() {
               <Pressable
                 key={step}
                 style={[styles.dot, {
-                  backgroundColor: selected ? dotColor : '#1e1a38',
-                  borderColor: selected ? dotColor : '#2e2855',
+                  backgroundColor: selected ? dotColor : Colors.cardSecondary,
+                  borderColor: selected ? dotColor : Colors.border,
                   transform: [{ scale: selected ? 1.18 : 1 }],
                 }]}
                 onPress={() => { setMood(step); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
@@ -231,7 +250,7 @@ export default function LogScreen() {
         <TextInput
           style={styles.notesInput}
           placeholder="Reflections, wins, challenges, thoughts..."
-          placeholderTextColor="#3d3760"
+          placeholderTextColor={Colors.textMuted}
           multiline
           numberOfLines={4}
           value={notes}
@@ -239,34 +258,6 @@ export default function LogScreen() {
           textAlignVertical="top"
         />
       </View>
-
-      {/* Submit */}
-      {savedSuccess ? (
-        <View style={styles.successBanner}>
-          <View style={styles.successIconWrap}>
-            <Ionicons name="checkmark-circle" size={28} color="#fff" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.successTitle}>Entry Saved!</Text>
-            <Text style={styles.successSub}>Taking you to your home dashboard...</Text>
-          </View>
-        </View>
-      ) : (
-        <Pressable
-          disabled={submitting}
-          style={({ pressed }) => [styles.submitBtn, pressed && styles.submitBtnPressed, submitting && styles.submitBtnDisabled]}
-          onPress={handleSubmit}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#1a1a2e" size="small" />
-          ) : (
-            <Ionicons name="cloud-upload-outline" size={20} color="#0a0820" />
-          )}
-          <Text style={styles.submitText}>
-            {submitting ? 'Saving to Behavioral Graph...' : 'Save Entry to Behavioral Graph'}
-          </Text>
-        </Pressable>
-      )}
     </View>
   );
 
@@ -300,7 +291,7 @@ export default function LogScreen() {
                 value={f.value}
                 onChangeText={f.set}
                 placeholder={f.placeholder}
-                placeholderTextColor="#3d3760"
+                placeholderTextColor={Colors.textMuted}
               />
             </View>
           ))}
@@ -330,7 +321,7 @@ export default function LogScreen() {
               value={f.value}
               onChangeText={f.set}
               placeholder={f.placeholder}
-              placeholderTextColor="#3d3760"
+              placeholderTextColor={Colors.textMuted}
             />
           </View>
         ))}
@@ -364,7 +355,7 @@ export default function LogScreen() {
                 <Text style={styles.habitDesc}>{h.desc}</Text>
               </View>
               <View style={[styles.habitCheck, h.val && styles.habitCheckActive]}>
-                {h.val && <Ionicons name="checkmark" size={14} color="#0a0820" />}
+                {h.val && <Ionicons name="checkmark" size={14} color={Colors.background} />}
               </View>
             </Pressable>
           ))}
@@ -381,7 +372,7 @@ export default function LogScreen() {
           <Text style={styles.toastText}>{toast}</Text>
         </View>
       ) : null}
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingBottom: isTablet ? 48 : 120 }]}>
         {/* Header */}
         <View style={styles.pageHeader}>
           <Text style={styles.pageTitle}>How is your day going?</Text>
@@ -399,28 +390,64 @@ export default function LogScreen() {
             {RightContent}
           </View>
         )}
+
+        {/* Submit button at the bottom */}
+        <View style={[styles.submitContainer, { maxWidth: isTablet ? 400 : '100%', alignSelf: 'center' }]}>
+          {savedSuccess ? (
+            <View style={styles.successBanner}>
+              <View style={styles.successIconWrap}>
+                <Ionicons name="checkmark-circle" size={28} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.successTitle}>Entry Saved!</Text>
+                <Text style={styles.successSub}>Taking you to your home dashboard...</Text>
+              </View>
+            </View>
+          ) : (
+            <Pressable
+              disabled={submitting}
+              style={({ pressed }) => [styles.submitBtn, pressed && styles.submitBtnPressed, submitting && styles.submitBtnDisabled]}
+              onPress={handleSubmit}
+            >
+              {submitting ? (
+                <ActivityIndicator color={Colors.background} size="small" />
+              ) : (
+                <Ionicons name="cloud-upload-outline" size={20} color={Colors.background} />
+              )}
+              <Text style={styles.submitText}>
+                {submitting ? 'Saving to Behavioral Graph...' : 'Save Entry to Behavioral Graph'}
+              </Text>
+            </Pressable>
+          )}
+        </View>
+
+        {!isTablet && <Footer />}
       </ScrollView>
+      {isTablet && <Footer />}
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
-  container: { flex: 1 },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 48,
-    maxWidth: Platform.OS === 'web' ? 1100 : '100%',
-    alignSelf: 'center',
+  container: {
+    flex: 1,
+    alignSelf: 'stretch',
     width: '100%',
+  },
+  content: {
+    paddingHorizontal: Platform.OS === 'web' ? 40 : 24,
+    paddingTop: Platform.OS === 'web' ? 40 : 32,
+    paddingBottom: 48,
+    width: '100%',
+    flexGrow: 1,
   },
   pageHeader: { marginBottom: 28 },
   pageTitle: { fontSize: 26, fontWeight: '800', color: Colors.text, letterSpacing: -0.5 },
   pageSub: { fontSize: 14, color: Colors.textSecondary, marginTop: 6 },
 
   tabletLayout: { flexDirection: 'row', gap: 24, width: '100%', alignItems: 'flex-start' },
-  mobileLayout: { flexDirection: 'column', gap: 0 },
+  mobileLayout: { flexDirection: 'column', gap: 20 },
   leftColumn: { flex: 1.1 },
   rightColumn: { flex: 1 },
   col: { gap: 20 },
@@ -434,11 +461,11 @@ const styles = StyleSheet.create({
   toastText: { color: '#fff', fontWeight: '700', fontSize: 13, flex: 1 },
 
   card: {
-    backgroundColor: '#13102a',
+    backgroundColor: Colors.card,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#221e42',
+    borderColor: Colors.border,
     marginBottom: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -447,8 +474,10 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cardTopRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   cardLabelBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -457,7 +486,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.secondary + '35',
   },
   cardLabelText: { fontSize: 11, fontWeight: '700', color: Colors.secondary, textTransform: 'uppercase', letterSpacing: 0.7 },
-  optionalTag: { fontSize: 11, color: '#4b5563', fontStyle: 'italic' },
+  optionalTag: { fontSize: 11, color: Colors.textMuted, fontStyle: 'italic' },
 
   moodBadge: {
     borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5,
@@ -471,54 +500,54 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
     borderWidth: 1.5, maxWidth: 40, maxHeight: 40,
   },
-  dotText: { fontSize: 11, fontWeight: '600', color: '#6b7280' },
+  dotText: { fontSize: 11, fontWeight: '600', color: Colors.textSecondary },
 
   selectionRow: { flexDirection: 'row', gap: 10 },
   selectorBtn: {
     flex: 1, height: 44, borderRadius: 12, borderWidth: 1.5,
-    borderColor: '#2e2855', justifyContent: 'center', alignItems: 'center',
-    backgroundColor: '#0e0b20',
+    borderColor: Colors.border, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: Colors.cardSecondary,
   },
   selectorText: { color: Colors.textSecondary, fontSize: 14, fontWeight: '600' },
-  selectorTextActive: { color: '#0a0820', fontWeight: '800' },
+  selectorTextActive: { color: Colors.background, fontWeight: '800' },
 
   inputGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   inputItem: { width: '47%' },
   fullInputItem: { marginBottom: 14 },
   inputItemHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   inputItemLabel: { fontSize: 12, color: Colors.textSecondary, fontWeight: '600' },
-  inputUnit: { color: '#4b5563', fontWeight: '400' },
+  inputUnit: { color: Colors.textMuted, fontWeight: '400' },
   inputField: {
-    height: 44, backgroundColor: '#0e0b20', borderRadius: 12,
-    borderWidth: 1.5, borderColor: '#2e2855', paddingHorizontal: 14,
-    color: '#fff', fontSize: 15,
+    height: 44, backgroundColor: Colors.cardSecondary, borderRadius: 12,
+    borderWidth: 1.5, borderColor: Colors.border, paddingHorizontal: 14,
+    color: Colors.text, fontSize: 15,
   },
 
   habitsGrid: { gap: 10 },
   habitCard: {
-    backgroundColor: '#0e0b20', borderRadius: 14, borderWidth: 1.5,
-    borderColor: '#2e2855', paddingVertical: 14, paddingHorizontal: 14,
+    backgroundColor: Colors.cardSecondary, borderRadius: 14, borderWidth: 1.5,
+    borderColor: Colors.border, paddingVertical: 14, paddingHorizontal: 14,
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
-  habitCardActive: { borderColor: Colors.secondary + '70', backgroundColor: '#0d1e2a' },
+  habitCardActive: { borderColor: Colors.secondary + '70', backgroundColor: Colors.secondary + '12' },
   habitIconWrap: {
     width: 38, height: 38, borderRadius: 10,
-    backgroundColor: '#1a1640', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: Colors.card, justifyContent: 'center', alignItems: 'center',
   },
   habitTextWrap: { flex: 1 },
   habitTitle: { fontSize: 14, fontWeight: '700', color: Colors.text },
   habitDesc: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
   habitCheck: {
     width: 24, height: 24, borderRadius: 12,
-    borderWidth: 1.5, borderColor: '#2e2855',
+    borderWidth: 1.5, borderColor: Colors.border,
     justifyContent: 'center', alignItems: 'center',
-    backgroundColor: '#1a1640',
+    backgroundColor: Colors.card,
   },
   habitCheckActive: { backgroundColor: Colors.secondary, borderColor: Colors.secondary },
 
   notesInput: {
-    backgroundColor: '#0e0b20', borderRadius: 14, borderWidth: 1.5,
-    borderColor: '#2e2855', padding: 14, color: '#fff',
+    backgroundColor: Colors.cardSecondary, borderRadius: 14, borderWidth: 1.5,
+    borderColor: Colors.border, padding: 14, color: Colors.text,
     fontSize: 14, minHeight: 100,
   },
 
@@ -530,9 +559,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35, shadowRadius: 14, elevation: 8,
   },
+  submitContainer: {
+    marginTop: 32,
+    marginBottom: 20,
+    width: '100%',
+  },
   submitBtnPressed: { opacity: 0.85 },
-  submitBtnDisabled: { backgroundColor: '#4b5563', opacity: 0.5, shadowOpacity: 0 },
-  submitText: { color: '#0a0820', fontWeight: '800', fontSize: 16 },
+  submitBtnDisabled: { backgroundColor: Colors.textMuted, opacity: 0.5, shadowOpacity: 0 },
+  submitText: { color: Colors.background, fontWeight: '800', fontSize: 16 },
   successBanner: {
     backgroundColor: '#065f46',
     borderRadius: 16, paddingVertical: 18, paddingHorizontal: 20,
@@ -547,4 +581,40 @@ const styles = StyleSheet.create({
   },
   successTitle: { color: '#fff', fontWeight: '800', fontSize: 17 },
   successSub: { color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 3 },
+  footerContainer: {
+    paddingHorizontal: Platform.OS === 'web' ? 40 : 24,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.background,
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  footerBrand: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.textMuted,
+    letterSpacing: 0.5,
+  },
+  footerLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  footerText: {
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  footerDot: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    opacity: 0.4,
+  },
 });

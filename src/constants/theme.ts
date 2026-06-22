@@ -1,20 +1,20 @@
 import { Platform } from 'react-native';
 
 export const Colors = {
-  background: '#090714', // Ultra deep space indigo
-  primary: '#8b5cf6', // Vibrant modern purple
-  secondary: '#06b6d4', // Neon Cyan
-  card: '#16122d', // Rich deep slate indigo for cards
-  cardSecondary: '#201a3d', // Sleek contrasting card background
-  text: '#ffffff',
-  textSecondary: '#a1a1aa', // Clean gray subtext
-  textMuted: '#71717a',
-  border: '#272145', // Violet border
-  success: '#10b981', // Vivid success emerald
-  danger: '#f43f5e', // Vibrant rose danger
-  warning: '#fb923c', // Warm orange warning
-  sliderMinimum: '#8b5cf6',
-  sliderMaximum: '#272145',
+  background: '#09090b', // Deep Obsidian/Zinc 950
+  primary: '#6366f1', // Elegant Royal Indigo
+  secondary: '#10b981', // Sophisticated Emerald Green
+  card: '#18181b', // Sleek matte charcoal / Zinc 900
+  cardSecondary: '#27272a', // Matte charcoal contrast / Zinc 800
+  text: '#f4f4f5', // Clean off-white / Zinc 100
+  textSecondary: '#a1a1aa', // Zinc 400 subtext
+  textMuted: '#71717a', // Zinc 500 caption text
+  border: '#27272a', // Zinc 800 subtle borders
+  success: '#10b981', // Emerald success
+  danger: '#ef4444', // Vibrant danger red
+  warning: '#f59e0b', // Warm amber warning
+  sliderMinimum: '#6366f1',
+  sliderMaximum: '#27272a',
 } as const;
 
 export const Fonts = Platform.select({
