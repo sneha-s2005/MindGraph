@@ -13,6 +13,7 @@ function getDriver() {
       return null;
     }
 
+    console.log(`Connecting to Neo4j at ${uri} as user: ${username}`);
     driver = neo4j.driver(uri, neo4j.auth.basic(username, password));
     console.log('✅ Neo4j driver initialized');
 
