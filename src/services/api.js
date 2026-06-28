@@ -49,6 +49,17 @@ export async function createUser(name, email) {
 }
 
 /**
+ * Log in a user by email address.
+ * @param {string} email
+ */
+export async function loginUser(email) {
+  return apiFetch('/api/users/login', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+/**
  * Log a mood entry with habits.
  * @param {object} payload - { userId, score, energyLevel, notes, habits }
  */
@@ -93,4 +104,4 @@ export async function resetUserData(userId) {
   });
 }
 
-export default { createUser, logMood, getInsights, getAiInsight, getGraphData, resetUserData };
+export default { createUser, loginUser, logMood, getInsights, getAiInsight, getGraphData, resetUserData };

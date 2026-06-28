@@ -233,7 +233,7 @@ export default function ProfileScreen() {
     }
   };
 
-  // Clear ALL cache, delete account and log out to onboarding
+  // Trigger Log Out confirmation overlay
   const handleClearCache = async () => {
     setShowLogoutConfirm(true);
   };
@@ -241,9 +241,8 @@ export default function ProfileScreen() {
   const performLogout = async () => {
     setShowLogoutConfirm(false);
     if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    if (userId && !userId.startsWith('local_')) {
-      try { await resetUserData(userId); } catch {}
-    }
+    
+    // Clear local session storage (Do NOT delete Neo4j database data)
     await AsyncStorage.clear();
     await AsyncStorage.setItem('@mindgraph_show_logout_toast', 'true');
     await logout();
@@ -440,12 +439,12 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        {/* Clear cache */}
+        {/* Log out */}
         <Pressable style={styles.settingsRow} onPress={handleClearCache}>
           <Ionicons name="log-out-outline" size={20} color="#fb923c" />
           <View style={styles.settingsText}>
-            <Text style={[styles.settingsTitle, { color: '#fb923c' }]}>Reset Cache & Log out</Text>
-            <Text style={styles.settingsDesc}>Deletes all logs locally and logs out of user profile.</Text>
+            <Text style={[styles.settingsTitle, { color: '#fb923c' }]}>Log Out</Text>
+            <Text style={styles.settingsDesc}>Logs out of your profile session. Your data is preserved in Neo4j.</Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color="#6b7280" />
         </Pressable>
@@ -564,16 +563,16 @@ export default function ProfileScreen() {
       </View>
     )}
 
-    {/* ── INLINE OVERLAY: Reset Cache / Logout Confirm ── */}
+    {/* ── INLINE OVERLAY: Logout Confirm ── */}
     {showLogoutConfirm && (
       <View style={styles.overlayBackdrop}>
         <View style={styles.modalCard}>
           <View style={{ alignItems: 'center', marginBottom: 12 }}>
-            <Ionicons name="warning-outline" size={36} color="#fb923c" />
+            <Ionicons name="log-out-outline" size={36} color="#fb923c" />
           </View>
-          <Text style={styles.modalTitle}>Delete Account?</Text>
+          <Text style={styles.modalTitle}>Log Out?</Text>
           <Text style={[styles.modalSubtitle, { marginBottom: 24 }]}>
-            This permanently deletes your account, all logs, and profile data. You will be taken back to onboarding. This cannot be undone.
+            This will log you out of your profile and return you to the onboarding screen. Your data in the Neo4j cloud database will be preserved.
           </Text>
           <View style={styles.modalActions}>
             <Pressable style={styles.modalCancelBtn} onPress={() => setShowLogoutConfirm(false)}>
@@ -584,7 +583,7 @@ export default function ProfileScreen() {
               onPress={performLogout}
             >
               <Ionicons name="log-out-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
-              <Text style={[styles.modalConfirmText, { color: '#fff' }]}>Delete Account</Text>
+              <Text style={[styles.modalConfirmText, { color: '#fff' }]}>Log Out</Text>
             </Pressable>
           </View>
         </View>

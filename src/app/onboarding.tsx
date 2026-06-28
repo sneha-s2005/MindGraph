@@ -14,7 +14,7 @@ import {
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { createUser } from '../services/api';
+import { createUser, loginUser } from '../services/api';
 import { Colors, Spacing } from '../constants/theme';
 import { UserContext } from './_layout';
 
@@ -52,6 +52,7 @@ export default function OnboardingScreen() {
   const isTablet = width >= 768;
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [isLogin, setIsLogin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [toast, setToast] = useState('');
@@ -74,26 +75,48 @@ export default function OnboardingScreen() {
   }, []);
 
   const handleGetStarted = async () => {
-    if (!name.trim() || !email.trim()) {
-      setError('Please enter your name and email.');
-      return;
-    }
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      setError('Please enter a valid email address.');
-      return;
-    }
-    setLoading(true);
-    setError('');
-    try {
-      const user = await createUser(name.trim(), email.trim().toLowerCase());
-      await AsyncStorage.setItem('@mindgraph_show_welcome_toast', 'true');
-      await login(user.userId, name.trim());
-    } catch (err) {
-      const localId = `local_${Date.now()}`;
-      await AsyncStorage.setItem('@mindgraph_show_welcome_toast', 'true');
-      await login(localId, name.trim());
-    } finally {
-      setLoading(false);
+    if (isLogin) {
+      if (!email.trim()) {
+        setError('Please enter your email.');
+        return;
+      }
+      if (!/\S+@\S+\.\S+/.test(email)) {
+        setError('Please enter a valid email address.');
+        return;
+      }
+      setLoading(true);
+      setError('');
+      try {
+        const user = await loginUser(email.trim().toLowerCase());
+        await AsyncStorage.setItem('@mindgraph_show_welcome_toast', 'true');
+        await login(user.userId, user.name);
+      } catch (err: any) {
+        setError(err.message || 'Log in failed. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      if (!name.trim() || !email.trim()) {
+        setError('Please enter your name and email.');
+        return;
+      }
+      if (!/\S+@\S+\.\S+/.test(email)) {
+        setError('Please enter a valid email address.');
+        return;
+      }
+      setLoading(true);
+      setError('');
+      try {
+        const user = await createUser(name.trim(), email.trim().toLowerCase());
+        await AsyncStorage.setItem('@mindgraph_show_welcome_toast', 'true');
+        await login(user.userId, name.trim());
+      } catch (err) {
+        const localId = `local_${Date.now()}`;
+        await AsyncStorage.setItem('@mindgraph_show_welcome_toast', 'true');
+        await login(localId, name.trim());
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -137,26 +160,30 @@ export default function OnboardingScreen() {
   // ─── Right Form Panel ─────────────────────────────
   const FormPanel = (
     <View style={styles.formPanel}>
-      <Text style={styles.formTitle}>Create your profile</Text>
-      <Text style={styles.formSubtitle}>Your data is stored privately in a Neo4j graph database.</Text>
+      <Text style={styles.formTitle}>{isLogin ? 'Log In to your profile' : 'Create your profile'}</Text>
+      <Text style={styles.formSubtitle}>
+        {isLogin ? 'Access your data synced to the Neo4j graph database.' : 'Your data is stored privately in a Neo4j graph database.'}
+      </Text>
 
-      <View style={styles.fieldGroup}>
-        <Text style={styles.label}>YOUR NAME</Text>
-        <View style={[styles.inputWrap, focusedField === 'name' && styles.inputWrapFocused]}>
-          <Ionicons name="person-outline" size={16} color={focusedField === 'name' ? Colors.secondary : '#4b5563'} style={{ marginRight: 10 }} />
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. Sneha"
-            placeholderTextColor={Colors.textMuted}
-            value={name}
-            onChangeText={(v) => { setName(v); setError(''); }}
-            autoCapitalize="words"
-            returnKeyType="next"
-            onFocus={() => setFocusedField('name')}
-            onBlur={() => setFocusedField(null)}
-          />
+      {!isLogin && (
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>YOUR NAME</Text>
+          <View style={[styles.inputWrap, focusedField === 'name' && styles.inputWrapFocused]}>
+            <Ionicons name="person-outline" size={16} color={focusedField === 'name' ? Colors.secondary : '#4b5563'} style={{ marginRight: 10 }} />
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. Sneha"
+              placeholderTextColor={Colors.textMuted}
+              value={name}
+              onChangeText={(v) => { setName(v); setError(''); }}
+              autoCapitalize="words"
+              returnKeyType="next"
+              onFocus={() => setFocusedField('name')}
+              onBlur={() => setFocusedField(null)}
+            />
+          </View>
         </View>
-      </View>
+      )}
 
       <View style={styles.fieldGroup}>
         <Text style={styles.label}>EMAIL ADDRESS</Text>
@@ -194,13 +221,25 @@ export default function OnboardingScreen() {
           <ActivityIndicator color={Colors.background} />
         ) : (
           <>
-            <Text style={styles.buttonText}>Get Started</Text>
+            <Text style={styles.buttonText}>{isLogin ? 'Log In' : 'Get Started'}</Text>
             <Ionicons name="arrow-forward" size={18} color={Colors.background} style={{ marginLeft: 8 }} />
           </>
         )}
       </Pressable>
 
-      <Text style={styles.privacyNote}>
+      <Pressable
+        style={styles.toggleModeButton}
+        onPress={() => {
+          setIsLogin(!isLogin);
+          setError('');
+        }}
+      >
+        <Text style={styles.toggleModeText}>
+          {isLogin ? "Don't have a profile? Sign Up" : "Already have a profile? Log In"}
+        </Text>
+      </Pressable>
+
+      <Text style={[styles.privacyNote, { marginTop: 16 }]}>
         🔒 No passwords. Your profile is stored locally and optionally synced to Neo4j.
       </Text>
     </View>
@@ -554,4 +593,15 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   toastText: { color: '#fff', fontWeight: '700', fontSize: 13, flex: 1 },
+  toggleModeButton: {
+    marginTop: 8,
+    alignSelf: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  toggleModeText: {
+    color: Colors.secondary,
+    fontSize: 14,
+    fontWeight: '700',
+  },
 });

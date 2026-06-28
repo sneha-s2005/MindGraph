@@ -41,6 +41,29 @@ router.post('/create', async (req, res) => {
   }
 });
 
+// POST /api/users/login
+router.post('/login', async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
+  try {
+    const cypher = 'MATCH (u:User {email: $email}) RETURN u.id AS userId, u.name AS name, u.email AS email';
+    const records = await runQuery(cypher, { email: email.toLowerCase().trim() });
+    
+    if (records.length === 0) {
+      return res.status(404).json({ error: 'No profile found with this email address.' });
+    }
+    
+    res.json(records[0]);
+  } catch (err) {
+    console.error('Neo4j error in /users/login:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/users/:userId — Get user profile
 router.get('/:userId', async (req, res) => {
   const { userId } = req.params;
