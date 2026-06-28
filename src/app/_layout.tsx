@@ -190,9 +190,9 @@ function TabLayoutContent() {
                 backgroundColor: Colors.card,
                 borderTopColor: Colors.border,
                 borderTopWidth: 1,
-                height: isTablet ? 0 : 64 + insets.bottom,
+                height: isTablet ? 0 : 72 + insets.bottom,
                 display: isTablet ? 'none' : 'flex',
-                paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
+                paddingBottom: insets.bottom > 0 ? insets.bottom + 6 : 8,
                 paddingTop: 8,
                 shadowColor: '#000',
                 shadowOffset: { width: 0, height: -4 },
@@ -203,6 +203,7 @@ function TabLayoutContent() {
               tabBarLabelStyle: {
                 fontSize: 11,
                 fontWeight: '600',
+                marginBottom: 2,
               },
               headerStyle: {
                 backgroundColor: Colors.background,
