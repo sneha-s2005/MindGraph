@@ -34,9 +34,9 @@ The root cause is structural: existing tracking apps are passive. They record is
 MindGraph is an AI-Powered Behavioral Intelligence OS that treats your daily life like it actually is — one connected system, not separate apps. It serves remote and hybrid knowledge workers who struggle with work-life balance and are at risk of mental exhaustion.
 
 MindGraph solves this by:
-1. **Low-Friction Logging**: A 30-second daily log for sleep, mood, energy, stress, and core habits.
-2. **Graph Traversal**: Storing behaviors as interconnected nodes in a **Neo4j AuraDB** graph, enabling instant discovery of multi-hop behavioral patterns (e.g., how skipping meditation on high-stress days impacts mood and productivity).
-3. **Proactive Intervention**: Calculating a real-time Burnout Risk Score and generating daily personalized AI wellness coaching insights via OpenAI GPT-3.5/GPT-4 based on active graph data.
+- **Low-Friction Logging**: A 30-second daily log for sleep, mood, energy, stress, and core habits.
+- **Graph Traversal**: Storing behaviors as interconnected nodes in a **Neo4j AuraDB** graph, enabling instant discovery of multi-hop behavioral patterns (e.g., how skipping meditation on high-stress days impacts mood and productivity).
+- **Proactive Intervention**: Calculating a real-time Burnout Risk Score and generating daily personalized AI wellness coaching insights via OpenAI GPT-3.5/GPT-4 based on active graph data.
 
 ---
 
@@ -80,4 +80,99 @@ MindGraph solves this by:
 Select if your project participates in any track:
 
 - [x] **Expo Track** – Built using Expo  
-- [x] **Neo4j Track** – Powered by Neo4j AuraDB graph database and Cypher queries
+- [x] **Neo4j Track** – Uses AuraDB as primary database  
+- [x] **Base44 Track** – Prototype/Final Product built using Base44  
+
+Provide a short note on how you used the partner technology:
+
+> **Expo**: Used to scaffold and compile our cross-platform client with strict TypeScript compliance, file-system tab routing (`expo-router`), and rich native experiences like haptic feedback (`expo-haptics`).
+> 
+> **Neo4j**: AuraDB stores all user sessions and logs as connected nodes. Cypher query traversals allow real-time correlation calculations to detect stress loops (e.g. `Stress -> Poor Sleep -> Burnout`).
+> 
+> **Base44 / Render.com**: Hosted the Express API server and static React Native Web assets, managing environment variables safely and supporting rapid deployment pipelines.
+
+---
+
+## ✨ Key Features
+
+Highlight the most important features of your project:
+
+- ✅ **30-Second Mood Logging**: Emoji-reactive mood slider (1–10), energy/stress selectors, and core habit checkboxes.
+- ✅ **Real-Time Burnout Risk Gauge**: Animated SVG semi-circle gauge displaying dynamic risk zones (Safe, Caution, Risk) with reactive needle.
+- ✅ **Behavioral Intelligence Score (BIS)**: A composite score (0–100, graded A+ to D) calculating sleep consistency, focus time, and stress.
+- ✅ **Interactive Graph Canvas**: Drag-and-zoom force-directed visualization of nodes and relationship paths with details overlay.
+
+---
+
+## 📽️ Demo & Deliverables
+
+- **Demo Video Link (Mandatory):** [Demo Video Link]  
+- **Deployment Link (Recommended):** [https://mindgraph-app.onrender.com/](https://mindgraph-app.onrender.com/)  
+- **Pitch Deck / PPT (Optional):** [Pitch Deck Link]  
+
+---
+
+## ✅ Tasks & Bonus Checklist
+
+- [x] All team members completed the mandatory social task  
+- [x] Bonus Task 1 – Badge sharing  
+- [x] Bonus Task 2 – Blog/article  
+
+---
+
+## 🧪 How to Run the Project
+
+### Requirements:
+- **Node.js** v18 or higher
+- **npm** v9 or higher
+- **Neo4j AuraDB** cloud database credentials
+- **OpenAI API Key**
+
+### Local Setup:
+1. **Clone the Repository:**
+   ```bash
+   git clone https://github.com/sneha-s2005/MindGraph.git
+   cd MindGraph
+   ```
+
+2. **Backend Setup:**
+   ```bash
+   cd backend
+   npm install
+   # Create a .env file with NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD, and OPENAI_API_KEY
+   npm run dev
+   ```
+
+3. **Frontend Setup:**
+   ```bash
+   cd ..
+   npm install
+   npm run web # Open in browser at http://localhost:8081
+   ```
+
+---
+
+## 🧬 Future Scope
+
+List improvements, extensions, or follow-up features:
+
+- 📈 **Wearable Integrations**: Import sleep and heart rate data from Apple Health / Google Fit.
+- 🛡️ **Team Analytics**: Anonymous team dashboard for HR departments to monitor employee burnout.
+- 🌐 **Custom Habits**: Allow users to track personalized habits beyond the 4 default options.
+
+---
+
+## 📎 Resources / Credits
+
+- **Neo4j AuraDB** (Cloud graph database)
+- **OpenAI API** (GPT coaching engine)
+- **Expo SDK & React Native** (App compilation)
+- **react-native-chart-kit** (Dashboard metrics visualization)
+
+---
+
+## 🏁 Final Words
+
+Building a full-stack mobile-first application in 7 days was challenging but rewarding! Combining graph database analytics with mental wellness gave us a tool that feels alive and highly relevant to modern remote/hybrid teams. Special thanks to the HackHazards '26 organizers and sponsors!
+
+---
