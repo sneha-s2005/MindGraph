@@ -114,9 +114,9 @@ Highlight the most important features of your project:
 
 ## ✅ Tasks & Bonus Checklist
 
-- [x] All team members completed the mandatory social task  
-- [x] Bonus Task 1 – Badge sharing  
-- [x] Bonus Task 2 – Blog/article  
+- [ ] All team members completed the mandatory social task  
+- [ ] Bonus Task 1 – Badge sharing  
+- [ ] Bonus Task 2 – Blog/article  
 
 ---
 
