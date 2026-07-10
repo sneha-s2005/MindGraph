@@ -46,10 +46,10 @@ MindGraph solves this by:
 `Dark Pulse`
 
 ### Team Members:  
-- **Manoj H.G (Lead)** — [GitHub](https://github.com/manojhg321) | Lead Developer  
-- **Dileep MK** — [GitHub](https://github.com/dileep-mk) | Backend & Database Developer  
-- **Sneha S** — [GitHub](https://github.com/sneha-s2005) | Frontend & AI Integration  
-- **Chinmay J C** — [GitHub](https://github.com/chinmaychoudhari620) | UI/UX & QA  
+- **Manoj H.G (Lead)** — [GitHub](https://github.com/manoj-hg) / [LinkedIn](https://www.linkedin.com/in/manoj-h-g/) | Lead Developer  
+- **Dileep MK** — [GitHub](https://github.com/DileepMK-126) / [LinkedIn](https://www.linkedin.com/in/dileep-m-k/) | Backend & Database Developer  
+- **Sneha S** — [GitHub](https://github.com/sneha-s2005) / [LinkedIn](https://www.linkedin.com/in/sneha-s-5b7b08342/) | Frontend & AI Integration  
+- **Chinmay J C** — [GitHub](https://github.com/Chinmay-C12331) / [LinkedIn](https://www.linkedin.com/in/chinmay-choudhari) | UI/UX & QA  
 
 ### Your Approach:
 - **Why we chose this**: We wanted to build a wellness tracker that captures real human complexity. Tabular databases struggle with causal connections across various factors, so we chose Neo4j to model relationship paths directly: `(User)-[:COMPLETED]->(HabitLog)-[:ON_DAY]->(MoodEntry)`.
