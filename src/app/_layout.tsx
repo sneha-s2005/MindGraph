@@ -67,6 +67,14 @@ function TabLayoutContent() {
   useEffect(() => {
     async function checkUser() {
       try {
+        if (Platform.OS === 'web') {
+          // Reset session on new tab/window open to ensure onboarding is shown first
+          if (!sessionStorage.getItem('@mindgraph_session_active')) {
+            await AsyncStorage.removeItem('@mindgraph_userId');
+            await AsyncStorage.removeItem('@mindgraph_userName');
+            sessionStorage.setItem('@mindgraph_session_active', 'true');
+          }
+        }
         const storedId = await AsyncStorage.getItem('@mindgraph_userId');
         const storedName = await AsyncStorage.getItem('@mindgraph_userName');
         setUserId(storedId);
