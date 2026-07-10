@@ -74,7 +74,7 @@ This file contains the complete content for the **PowerPoint Slide Deck** and th
 
 ## ✍️ DEV.TO / Medium Blog Post
 
-### How I Built an AI-Powered Habit Graph App in 7 Days as a Solo Beginner Using Neo4j, Expo, and Antigravity
+### How I Built an AI-Powered Habit Graph App as a Solo Beginner Using Neo4j, Expo, and Antigravity
 
 **Introduction**
 Burnout is a silent productivity killer. As a solo beginner entering the HACKHAZARDS '26 hackathon, I set out to build a tool that didn't just count habits, but understood how they affect our mental well-being. The result is **MindGraph**—an AI-powered wellness dashboard that correlates daily habits with mental health.
@@ -83,7 +83,7 @@ Burnout is a silent productivity killer. As a solo beginner entering the HACKHAZ
 Most tracking apps use standard SQL tables to record habits. However, human experience isn't tabular; it's a web of connected events. By choosing a graph database like **Neo4j AuraDB**, I was able to model relationship paths directly: `(User)-[:COMPLETED]->(HabitLog)-[:ON_DAY]->(MoodEntry)`. Using Neo4j's Cypher query language, finding the top habits on high-mood days is simplified into matching patterns rather than performing heavy SQL JOIN queries. This relationship-first architecture allows MindGraph to dynamically evaluate the correlation between sleeping 7+ hours and having a high mood of 8/10.
 
 **How Antigravity Helped Me Accelerate the Build**
-Building a full-stack mobile-first application in a single week is daunting for a beginner. Using the Antigravity AI assistant, I was able to scaffold the Expo frontend using TypeScript, create the Express.js API, write the complex Cypher queries for Neo4j, and handle fallback local storage. The AI acted as a pair programmer, explaining graph database connections, optimizing the SVG needle rotations for the burnout risk gauge, and helping me resolve React Native Web animation issues with strict platform checks.
+Building a full-stack mobile-first application for a major hackathon is daunting for a beginner. Using the Antigravity AI assistant, I was able to scaffold the Expo frontend using TypeScript, create the Express.js API, write the complex Cypher queries for Neo4j, and handle fallback local storage. The AI acted as a pair programmer, explaining graph database connections, optimizing the SVG needle rotations for the burnout risk gauge, and helping me resolve React Native Web animation issues with strict platform checks.
 
 **The Biggest Technical Challenge**
 The most challenging part of the project was connecting the Expo frontend to the Neo4j backend during offline environments. To ensure a premium UX, I designed a **dual-save and sync pattern**. When a user logs mood and habits, it is saved instantly to local AsyncStorage so the application remains functional offline. Then, the client attempts to sync the payload to the Neo4j backend. If the backend is unreachable or the user is offline, the app dynamically falls back to calculating burnout indicators and trends locally, ensuring the UI is always responsive.

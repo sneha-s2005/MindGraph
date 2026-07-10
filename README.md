@@ -173,6 +173,6 @@ List improvements, extensions, or follow-up features:
 
 ## 🏁 Final Words
 
-Building a full-stack mobile-first application in 7 days was challenging but rewarding! Combining graph database analytics with mental wellness gave us a tool that feels alive and highly relevant to modern remote/hybrid teams. Special thanks to the HackHazards '26 organizers and sponsors!
+Building this full-stack mobile-first application for the HackHazards '26 hackathon was a challenging but rewarding journey! Combining graph database analytics with mental wellness gave us a tool that feels alive and highly relevant to modern remote/hybrid teams. Special thanks to the HackHazards '26 organizers and sponsors!
 
 ---
