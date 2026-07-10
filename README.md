@@ -98,9 +98,24 @@ Provide a short note on how you used the partner technology:
 Highlight the most important features of your project:
 
 - ✅ **30-Second Mood Logging**: Emoji-reactive mood slider (1–10), energy/stress selectors, and core habit checkboxes.
-- ✅ **Real-Time Burnout Risk Gauge**: Animated SVG semi-circle gauge displaying dynamic risk zones (Safe, Caution, Risk) with reactive needle.
-- ✅ **Behavioral Intelligence Score (BIS)**: A composite score (0–100, graded A+ to D) calculating sleep consistency, focus time, and stress.
+  <br/>
+  <img src="./assets/screenshots/log.png" width="800" alt="Mood Logging Screen" />
+
+- ✅ **Real-Time Burnout Risk Gauge & BIS**: Animated SVG semi-circle gauge displaying dynamic risk zones (Safe, Caution, Risk) with a reactive needle and composite Behavioral Intelligence Score (0–100, graded A+ to D).
+  <br/>
+  <img src="./assets/screenshots/home.png" width="800" alt="Home Dashboard & Burnout Gauge" />
+
+- ✅ **Analytics & AI Coaching Insights**: Detailed weekly mood/productivity charts, correlation cards, and personalized coach advice.
+  <br/>
+  <img src="./assets/screenshots/insights.png" width="800" alt="Insights & Analytics" />
+
 - ✅ **Interactive Graph Canvas**: Drag-and-zoom force-directed visualization of nodes and relationship paths with details overlay.
+  <br/>
+  <img src="./assets/screenshots/graph.png" width="800" alt="Interactive Behavioral Graph" />
+
+- ✅ **Profile & Achievement Badges**: Track total logs, average sleep, and unlock milestones like Neo4j Pioneer, Consistency King, and Sleep Champion.
+  <br/>
+  <img src="./assets/screenshots/profile.png" width="800" alt="Profile and Badges" />
 
 ---
 
