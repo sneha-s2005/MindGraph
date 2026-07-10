@@ -1,78 +1,86 @@
-# 🧠 MindGraph
+<img width="4320" height="1440" alt="hh26 main poster 2 with sponsors 3x1 (4320 x 1440 px) (2)" src="https://github.com/user-attachments/assets/c698b2cd-da84-4cb0-9276-125c6a7244aa" />
 
-### *Your AI-Powered Behavioral Intelligence OS*
 
-> **Track your habits. Map your mind. Intercept burnout before it happens.**
+# 🚀 MindGraph
 
-MindGraph is a cross-platform wellness application that goes beyond traditional habit tracking. By modeling your daily behaviors — mood, sleep, exercise, focus time, stress, and social interactions — as an interconnected graph in Neo4j AuraDB, MindGraph discovers the hidden behavioral patterns that drive or drain your performance. Paired with GPT-3.5 AI coaching and a real-time burnout risk engine, it gives you an early warning system for your own mental health.
-
-Built for **HACKHAZARDS '26 · Human Experience & Productivity track**.
+> Track your habits. Map your mind. Intercept burnout before it happens.
 
 ---
 
-![React Native](https://img.shields.io/badge/React_Native-0.85-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![Expo](https://img.shields.io/badge/Expo-56-000020?style=for-the-badge&logo=expo&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-Express-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
-![Neo4j](https://img.shields.io/badge/Neo4j-AuraDB-008CC1?style=for-the-badge&logo=neo4j&logoColor=white)
-![OpenAI](https://img.shields.io/badge/OpenAI-GPT--3.5-412991?style=for-the-badge&logo=openai&logoColor=white)
-![Render](https://img.shields.io/badge/Deploy-Render.com-46E3B7?style=for-the-badge&logo=render&logoColor=white)
+## 📌 Problem & Domain
+
+Burnout is a silent productivity killer. Gallup reports that **77% of knowledge workers** have experienced burnout in their current role. Most professionals only recognize severe burnout after **3+ months** of progressive decline, costing the global economy **$125–$190 billion** annually in healthcare costs and lost productivity.
+
+The root cause is structural: existing tracking apps are passive. They record isolated data columns (e.g., mood on Monday, sleep on Tuesday) but cannot see the relationship between them. Without the ability to traverse behavioral relationships, no app can actively intercept burnout before it peaks.
+
+**Themes Selected (at least one):**
+- [x] Human Experience & Productivity  
+- [ ] Climate & Sustainability Systems  
+- [ ] HealthTech & Bio Platforms  
+- [ ] Learning & Knowledge Systems  
+- [ ] Work, Finance & Digital Economy  
+- [ ] Infrastructure, Mobility & Smart Systems  
+- [ ] Trust, Identity & Security  
+- [ ] Media, Social & Interactive Platforms  
+- [ ] Public Systems, Governance and Civic Tech  
+- [ ] Developer Tools & Software Infrastructure  
+
+*(You can select multiple themes if applicable)*
 
 ---
 
-## 📋 Table of Contents
+## 🎯 Objective
 
-- [Problem Statement](#-problem-statement)
-- [Solution](#-solution)
-- [Key Features](#-key-features)
-- [System Architecture](#-system-architecture)
-- [Tech Stack](#-tech-stack)
-- [Why Neo4j?](#-why-neo4j)
-- [Project Structure](#-project-structure)
-- [Installation & Setup](#-installation--setup)
-- [Environment Variables](#-environment-variables)
-- [API Documentation](#-api-documentation)
-- [Usage Guide](#-usage-guide)
-- [Future Enhancements](#-future-enhancements)
-- [Contributing](#-contributing)
-- [License](#-license)
-- [Acknowledgements](#-acknowledgements)
+MindGraph is an AI-Powered Behavioral Intelligence OS that treats your daily life like it actually is — one connected system, not separate apps. It serves remote and hybrid knowledge workers who struggle with work-life balance and are at risk of mental exhaustion.
+
+MindGraph solves this by:
+1. **Low-Friction Logging**: A 30-second daily log for sleep, mood, energy, stress, and core habits.
+2. **Graph Traversal**: Storing behaviors as interconnected nodes in a **Neo4j AuraDB** graph, enabling instant discovery of multi-hop behavioral patterns (e.g., how skipping meditation on high-stress days impacts mood and productivity).
+3. **Proactive Intervention**: Calculating a real-time Burnout Risk Score and generating daily personalized AI wellness coaching insights via OpenAI GPT-3.5/GPT-4 based on active graph data.
 
 ---
 
-## 🔥 Problem Statement
+## 🧠 Team & Approach
 
-**77% of knowledge workers have experienced burnout in their current role** *(Gallup, 2023)*. Most professionals recognize severe burnout only after **3+ months** of progressive decline, costing the global economy an estimated **$125–$190 billion** annually.
+### Team Name:  
+`Dark Pulse`
 
-The root cause is structural: **existing tracking apps are passive**. They record data in isolated columns — mood on Monday, exercise on Tuesday — but they cannot see the relationship between them. They cannot answer:
+### Team Members:  
+- **Manoj H.G (Lead)** — [GitHub](https://github.com/manojhg321) | Lead Developer  
+- **Dileep MK** — [GitHub](https://github.com/dileep-mk) | Backend & Database Developer  
+- **Sneha S** — [GitHub](https://github.com/sneha-s2005) | Frontend & AI Integration  
+- **Chinmay J C** — [GitHub](https://github.com/chinmaychoudhari620) | UI/UX & QA  
 
-- *"Does skipping meditation on high-stress days drive my mood below 5 the next morning?"*
-- *"Which single habit, if completed, most reliably predicts a productive work session?"*
-- *"Am I trending toward burnout, or is this week an anomaly?"*
-
-Without the ability to traverse behavioral relationships, no app can intercept burnout before it peaks.
+### Your Approach:
+- **Why we chose this**: We wanted to build a wellness tracker that captures real human complexity. Tabular databases struggle with causal connections across various factors, so we chose Neo4j to model relationship paths directly: `(User)-[:COMPLETED]->(HabitLog)-[:ON_DAY]->(MoodEntry)`.
+- **Key challenges addressed**: Handling offline/spotty internet connections while keeping the graph updated. We solved this with a **dual-save and sync pattern** using AsyncStorage locally, which dynamically falls back to local calculations if the backend server is unreachable.
+- **Pivots & Breakthroughs**: Scaled local calculations for the complex Behavioral Intelligence Score (BIS), burnout risk gauge needle animation, and correlation paths so that the client UI is fully functional and responsive even offline.
 
 ---
 
-## 💡 Solution
+## 🛠️ Tech Stack
 
-MindGraph models your daily life as a **property graph** — nodes for Mood, Sleep, Exercise, Study, Work, Habits, Goals, and social Persons, connected by typed relationships. Every entry you log is instantly woven into Neo4j AuraDB as a rich relationship network, not just a flat row.
+### Core Technologies Used:
+- **Frontend**: Expo SDK 56 & React Native 0.85, TypeScript 6.0, AsyncStorage, react-native-svg, react-native-chart-kit
+- **Backend**: Node.js & Express.js REST API
+- **Database**: Neo4j AuraDB (Graph Database, Cypher Query Language)
+- **APIs**: OpenAI API (GPT-3.5-turbo & GPT-4)
+- **Hosting**: Render.com (hosted backend API and React Native Web build hosting)
 
-**The user flow:**
+### Additional Technologies Used (Optional):
+- [x] AI / ML  
+- [ ] Web3 / Blockchain  
+- [ ] Cyber Security  
+- [x] Cloud  
 
-```
-Log daily habits (30 sec)
-    ↓
-Graph nodes & relationships created in Neo4j via Cypher
-    ↓
-Multi-hop graph queries compute burnout risk, behavioral intelligence score, and habit correlations
-    ↓
-GPT-3.5 reads your graph data and generates hyper-personalized AI coaching insights
-    ↓
-You receive an early warning + actionable advice before burnout peaks
-```
+---
 
-The result is a **Behavioral Intelligence OS**: a system that not only records your habits but understands how they interact, predicts tomorrow's productivity, and alerts you when patterns indicate growing stress.
+## 🏆 Sponsored Track (Optional)
+
+Select if your project participates in any track:
+
+- [x] **Expo Track** – Built using Expo  
+- [x] **Neo4j Track** – Powered by Neo4j AuraDB graph database and Cypher queries
 
 ---
 
@@ -178,28 +186,6 @@ graph LR
     BR -->|BASED_ON| M
     BR -->|BASED_ON| SL
 ```
-
----
-
-## 🛠️ Tech Stack
-
-| Technology | Purpose |
-|---|---|
-| **React Native 0.85** | Cross-platform mobile UI framework |
-| **Expo SDK 56** | Managed build toolchain, routing, haptics, and splash screen |
-| **Expo Router** | File-system based tab navigation |
-| **TypeScript 6** | Strict type safety across all frontend source files |
-| **AsyncStorage** | Local-first offline data persistence for mood entries |
-| **react-native-svg** | Animated SVG burnout gauge and graph canvas rendering |
-| **react-native-chart-kit** | 7-day mood and productivity bar/line charts |
-| **react-native-gesture-handler** | Drag, pan, and gesture interactions on the graph canvas |
-| **expo-haptics** | Tactile feedback on habit toggles and form submissions |
-| **Node.js + Express.js** | REST API server with async error handling |
-| **Neo4j AuraDB** | Cloud-hosted property graph database for behavioral relationship storage |
-| **Cypher Query Language** | Multi-hop graph traversal for habit correlations and influence scoring |
-| **OpenAI GPT-3.5 Turbo** | AI wellness coaching insight generation from structured graph data |
-| **nodemon** | Hot-reload development server for the backend |
-| **Render.com** | Production backend deployment with environment variable management |
 
 ---
 
