@@ -108,7 +108,7 @@ Highlight the most important features of your project:
 
 - **Demo Video Link (Mandatory):** [Demo Video Link]  
 - **Deployment Link (Recommended):** [https://mindgraph-app.onrender.com/](https://mindgraph-app.onrender.com/)  
-- **Pitch Deck / PPT (Optional):** [Pitch Deck Link]  
+- **Pitch Deck / PPT (Optional):** [MindGraph Pitch Deck (PPTX)](https://github.com/sneha-s2005/MindGraph/blob/master/MindGraph_Presentation_Final_v8.pptx)  
 
 ---
 
