@@ -123,7 +123,7 @@ Highlight the most important features of your project:
 
 - **Demo Video:** [Watch on YouTube](https://www.youtube.com/watch?v=qKqSv_zHsWQ)  
 - **Live Application:** [MindGraph Web App](https://mindgraph-app.onrender.com/)  
-- **Presentation Deck:** [Google Slides](https://docs.google.com/presentation/d/1N_xXT9F9tvhoEGvD2E_6Fv5OMCsMQDAE/edit?usp=drive_link&ouid=109910789420155797313&rtpof=true&sd=true)  
+- **Presentation Deck:** [Google Slides](https://docs.google.com/presentation/d/1N_xXT9F9tvhoEGvD2E_6Fv5OMCsMQDAE/edit?usp=sharing&ouid=109910789420155797313&rtpof=true&sd=true)  
 
 ---
 
